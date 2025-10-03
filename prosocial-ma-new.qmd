@@ -1,0 +1,486 @@
+---
+title: "Prosocial evaluation - new meta-analysis"
+format: html
+---
+
+# Setup and data loading
+```{r}
+library(tidyverse)
+library(here)
+library(glue)
+
+library(patchwork)
+library(ggpubr)
+
+library(metafor)
+library(metaviz)
+library(emmeans)
+
+library(boot)
+library(MAd) 
+library(forestplot)
+library(multcomp)
+
+source(here("scripts", "smd_helpers.R"))
+source(here("scripts", "plot_helpers.R"))
+
+theme_set(theme_bw() +
+            theme(panel.grid = element_blank()))
+```
+
+```{r}
+df_data <- read_csv(here("data", "data_meta_new_ppt.csv")) |> 
+  mutate(s = as.numeric(s),
+         t = as.numeric(t),
+         scenarios = factor(scenarios) |> 
+           fct_relevel("help_hinder", "fair_unfair", "give_take", "other"),
+         measure = factor(measure) |>
+           fct_relevel("reach", "help", "visual")) |> 
+  rename(scenario = scenarios)
+```
+
+# Calculating Cohen's d
+```{r}
+df_data_d <- df_data |> 
+  mutate(d_calc = case_when(
+    is.na(t) & !is.na(s) ~ calculate_d("proportion", ni = ni, s = s),
+    !is.na(t) ~ calculate_d("ttest", ni = ni, t = t),
+    .default = calculate_d("success", ni = ni, xi = xi)
+  )) |> 
+  unnest(cols = c(d_calc)) |> 
+  mutate(d_se = sqrt(d_var))
+```
+
+# Mixed effects meta-analysis
+```{r}
+ma_re <- rma.mv(yi = d,
+                V = d_var,
+                random = ~ 1 | study/ppt_grp,
+                data = df_data_d)
+```
+
+```{r}
+summary(ma_re)
+```
+
+```{r}
+glue("Estimated d: {print_est_ci(d_to_prop(ma_re$b[1]), 
+     d_to_prop(ma_re$ci.lb), d_to_prop(ma_re$ci.ub))}")
+```
+
+# Plots
+## Funnel plot
+```{r}
+summary_es <- ma_re$b[1,1]
+summary_tau2 <- 0 # ma_re$tau2
+summary_se <- ma_re$se
+max_se <- max(df_data_d$d_se) + max(df_data_d$d_se) * 0.2
+
+funneldata <- tibble(
+  x = c(summary_es - stats::qnorm(0.975) * sqrt(max_se^2 + summary_tau2),
+        summary_es - stats::qnorm(0.975) * sqrt(summary_tau2),
+        summary_es + stats::qnorm(0.975) * sqrt(summary_tau2),
+        summary_es + stats::qnorm(0.975) * sqrt(max_se^2 + summary_tau2)),
+  y = c(max_se, 0, 0, max_se)
+)
+
+funneldata_dense <- funneldata |> 
+  mutate(line_id = c(0, 0, 1, 1)) |>
+  nest(data = -line_id) |> 
+  mutate(interp = map(data, 
+                      \(d) approx(d$x, d$y, n = 200) |> as_tibble())) |> 
+  dplyr::select(-data) |> 
+  unnest(interp)
+
+p_funnel <- df_data_d |> 
+  ggplot(aes(x = d, y = d_se)) +
+  geom_path(data = funneldata, 
+            aes(x = x, y = y),
+            lty = "dashed",
+            col = "gray27") +
+  geom_path(data = tibble(
+    x = c(summary_es, summary_es),
+    y = c(0, max_se)), 
+    aes(x = x, y = y), 
+    lty = "dashed",
+    col = "gray27") +
+  geom_point(col = PLOT_COL,
+             alpha = .7,
+             size = 2) +
+  scale_y_reverse() +
+  coord_cartesian(ylim = c(max_se * 0.95, 0)) +
+  labs(x = "Cohen's d",
+       y = "Standard error")
+
+ggsave("figs/funnel_plot.png",
+       p_funnel,
+       width = 6, 
+       height = 4,
+       dpi = 500)
+```
+
+```{r}
+p_funnel_prop <- df_data_d |> 
+  ggplot(aes(x = d_to_prop(d), y = d_se)) +
+  geom_path(data = funneldata_dense, 
+            aes(x = d_to_prop(x), y = y),
+            lty = "dashed",
+            col = "gray27") +
+  geom_path(data = tibble(
+    x = d_to_prop(c(summary_es, summary_es)),
+    y = c(0, max_se)),
+    aes(x = x, y = y), 
+    lty = "dashed",
+    col = "gray27") +
+  geom_point(col = PLOT_COL,
+             alpha = .7,
+             size = 2) +
+  scale_y_reverse() +
+  coord_cartesian(ylim = c(max_se * 0.95, 0)) +
+  labs(x = "Proportion preferring prosocial agent",
+       y = "Standard error (in d)")
+p_funnel_prop
+
+ggsave("figs/funnel_plot_prop.png",
+       p_funnel_prop,
+       width = 6, 
+       height = 4,
+       dpi = 500)
+```
+
+
+## Forest plot
+```{r}
+df_data_agg <- agg(
+  id = ID,
+  es = d,
+  var = d_var,
+  method = "BHHR",
+  data = df_data_d
+) |> 
+  mutate(study = df_data_d$study |> unique() |> study_label()) |> 
+  rename(d = es,
+         d_var = var) |> 
+  mutate(d_se = sqrt(d_var))
+
+df_data_agg_trans <- df_data_agg |> 
+  mutate(d_ci.lb = d - stats::qnorm(0.975) * d_se,
+         d_ci.ub = d + stats::qnorm(0.975) * d_se,
+         prop = d_to_prop(d),
+         prop_ci.lb = d_to_prop(d_ci.lb),
+         prop_ci.ub = d_to_prop(d_ci.ub))
+
+ma_agg <- rma.uni(yi = d,
+                  vi = d_var,
+                  data = df_data_agg)
+```
+
+```{r}
+# p_forest <- viz_forest(
+#   rma.uni(yi = es, vi = var, data = df_data_agg),
+#   study_labels = df_data_agg$study,
+#   x_trans_function = d_to_prop
+# )
+```
+
+```{r}
+p_forest <- df_data_agg_trans |> 
+  mutate(prec = 1 / (d_var + ma_agg$tau2),
+         weight = prec / sum(prec)) |>
+  make_forest_plot(ma_re)
+
+ggsave("figs/forest_plot.png",
+       p_forest,
+       width = 7, 
+       height = 9,
+       dpi = 500)
+```
+
+```{r}
+df_data_agg_trans |> 
+  mutate(prec = 1 / (d_var + ma_agg$tau2),
+         weight = prec / sum(prec)) |> 
+  arrange(prop) |> 
+  mutate(id = row_number()) |>
+  make_forest_plot(ma_re)
+```
+
+## Main moderators
+Age model
+```{r}
+df_data_d <- df_data_d |> 
+  mutate(prec = 1 / (d_var + ma_re$tau2),
+         weight = prec / sum(prec))
+
+mod_age <- rma.mv(yi = d,
+                  V = d_var,
+                  random = ~ 1 | study/ppt_grp,
+                  mods = ~ mean_age_days,
+                  data = df_data_d)
+pred_age <- predict(mod_age)
+
+df_age_pred <- df_data_d |> 
+  mutate(d_pred = pred_age$pred,
+         d_pred_ci.lb = pred_age$ci.lb,
+         d_pred_ci.ub = pred_age$ci.ub,
+         prop_pred = d_to_prop(d_pred),
+         prop_pred_ci.lb = d_to_prop(d_pred_ci.lb),
+         prop_pred_ci.ub = d_to_prop(d_pred_ci.ub))
+
+p_age <- df_data_d |> 
+  mutate(prop = d_to_prop(d)) |> 
+  ggplot(aes(x = mean_age_days, y = prop)) +
+  geom_point(aes(size = weight), col = PLOT_COL, alpha = .7) +
+  geom_ribbon(data = df_age_pred,
+              aes(x = mean_age_days,
+                  y = prop_pred,
+                  ymin = prop_pred_ci.lb,
+                  ymax = prop_pred_ci.ub),
+              fill = PLOT_COL,
+              alpha = .2) +
+  geom_line(data = df_age_pred,
+            aes(x = mean_age_days,
+                y = prop_pred),
+            col = PLOT_COL,
+            linewidth = 1) +
+  labs(x = "Mean age (days)",
+       y = "Proportion preferring prosocial agent") +
+  scale_size_continuous(range = c(1, 3), 
+                        guide = "none")
+
+p_age
+```
+
+Sample size model
+```{r}
+mod_n <- rma.mv(yi = d,
+                V = d_var,
+                random = ~ 1 | study/ppt_grp,
+                mods = ~ log(ni),
+                data = df_data_d)
+pred_n <- predict(mod_n)
+
+df_n_pred <- df_data_d |> 
+  mutate(d_pred = pred_n$pred,
+         d_pred_ci.lb = pred_n$ci.lb,
+         d_pred_ci.ub = pred_n$ci.ub,
+         prop_pred = d_to_prop(d_pred),
+         prop_pred_ci.lb = d_to_prop(d_pred_ci.lb),
+         prop_pred_ci.ub = d_to_prop(d_pred_ci.ub))
+
+p_n <- df_data_d |> 
+  mutate(prop = d_to_prop(d)) |> 
+  ggplot(aes(x = log(ni), y = prop)) +
+  geom_point(aes(size = weight), col = PLOT_COL, alpha = .7) +
+  geom_ribbon(data = df_n_pred,
+              aes(x = log(ni),
+                  y = prop_pred,
+                  ymin = prop_pred_ci.lb,
+                  ymax = prop_pred_ci.ub),
+              fill = PLOT_COL,
+              alpha = .2) +
+  geom_line(data = df_n_pred,
+            aes(x = log(ni),
+                y = prop_pred),
+            col = PLOT_COL,
+            linewidth = 1) +
+  labs(x = "Log sample size",
+       y = "Proportion preferring prosocial agent") +
+  scale_size_continuous(range = c(1, 3), 
+                        guide = "none")
+
+p_n
+```
+
+Scenario model
+```{r}
+mod_scenario <- rma.mv(yi = d,
+                       V = d_var,
+                       random = ~ 1 | study/ppt_grp,
+                       mods = ~ factor(scenario),
+                       data = df_data_d)
+
+p_scenario <- make_moderator_plot(df_data_d, mod_scenario)
+p_scenario
+```
+
+Measure model
+```{r}
+mod_measure <- rma.mv(yi = d,
+                      V = d_var,
+                      random = ~ 1 | study/ppt_grp,
+                      mods = ~ factor(measure),
+                      data = df_data_d)
+
+p_measure <- make_moderator_plot(df_data_d, mod_measure)
+p_measure
+```
+
+Combined moderator plots
+```{r}
+p_moderators <- (p_age + p_n + p_scenario + p_measure) +
+  # plot_layout(axis_titles = "collect") +
+  plot_annotation(tag_levels = 'A') &
+  scale_y_continuous(limits = c(0, 1.1),
+                     breaks = seq(0, 1, 0.25))
+
+p_moderators
+
+ggsave("figs/moderator_plots.png",
+       p_moderators,
+       width = 8,
+       height = 7,
+       dpi = 500)
+```
+
+## Additional moderators
+Hamlin lab
+```{r}
+mod_hamlin <- rma.mv(yi = d,
+                     V = d_var,
+                     random = ~ 1 | study/ppt_grp,
+                     mods = ~ H_Lab_narrow,
+                     data = df_data_d)
+
+p_hamlin <- make_moderator_plot(df_data_d, mod_hamlin) +
+  labs(x = "Hamlin lab") +
+  scale_x_discrete(
+    limits = c("yes", "no"),
+    labels = str_to_sentence
+  )
+p_hamlin
+
+emmprep(mod_hamlin) |> emmeans( ~ H_Lab_narrow) |> as_tibble()
+```
+
+```{r}
+mod_presentation <- rma.mv(yi = d,
+                           V = d_var,
+                           random = ~ 1 | study/ppt_grp,
+                           mods = ~ stimuli,
+                           data = df_data_d)
+
+p_presentation <- make_moderator_plot(df_data_d, mod_presentation) +
+  labs(x = "Stimuli presentation mode")
+p_presentation
+```
+
+```{r}
+mod_stimuli <- rma.mv(yi = d,
+                     V = d_var,
+                     random = ~ 1 | study/ppt_grp,
+                     mods = ~ stimuli_2,
+                     data = df_data_d)
+
+p_stimuli <- make_moderator_plot(df_data_d, mod_stimuli) +
+  labs(x = "Stimuli type") +
+  scale_x_discrete(
+    limits = c("real", "cartoon"),
+    labels = str_to_sentence
+  )
+p_stimuli
+```
+
+```{r}
+mod_question <- rma.mv(yi = d,
+                       V = d_var,
+                       random = ~ 1 | study/ppt_grp,
+                       mods = ~ question,
+                       data = df_data_d |> 
+                         filter(!is.na(question)))
+
+p_question <- make_moderator_plot(
+  df_data_d |> filter(!is.na(question)),
+  mod_question) +
+  scale_x_discrete(
+    limits = c("Who do you like", "Other", "No"),
+    labels = c("Who do you like?", "Other question", "No question")
+  ) +
+  labs(x = "Question type")
+p_question
+```
+
+```{r}
+mod_object <- rma.mv(yi = d,
+                     V = d_var,
+                     random = ~ 1 | study/ppt_grp,
+                     mods = ~ choice_object,
+                     data = df_data_d)
+
+p_object <- make_moderator_plot(df_data_d, mod_object) +
+  labs(x = "Choice object type") +
+  scale_x_discrete(
+    limits = c("shapes", "puppets", "experimenters"),
+    labels = str_to_sentence
+  )
+p_object
+```
+
+```{r}
+mod_pub <- rma.mv(yi = d,
+                  V = d_var,
+                  random = ~ 1 | study/ppt_grp,
+                  mods = ~ published,
+                  data = df_data_d)
+
+p_pub <- make_moderator_plot(df_data_d, mod_pub) +
+  labs(x = "Publication status") +
+  scale_x_discrete(
+    limits = c("yes", "no"),
+    labels = c("Published", "Unpublished")
+  )
+p_pub
+```
+
+```{r}
+mod_country <- rma.mv(yi = d,
+                        V = d_var,
+                        random = ~ 1 | study/ppt_grp,
+                        mods = ~ nationality,
+                        data = df_data_d |> filter(!is.na(nationality)))
+
+p_country <- make_moderator_plot(
+  df_data_d |> filter(!is.na(nationality)),
+  mod_country) +
+  labs(x = "Country") +
+  scale_x_discrete(
+    limits = c("North_America", "Europe", "Asia", "Oceania"),
+    labels = \(x) x |> str_replace_all("_", " ") |> str_to_title()
+  )
+p_country
+```
+
+
+# Publication bias
+```{r}
+emmprep(mod_pub) |> emmeans(~ published) |> as_tibble()
+```
+
+Trim-and-fill
+NOTE: T&F has not been extended to multilevel models, so these estimates are probably inaccurate.
+```{r}
+mod_trimfill_pubonly <- rma.uni(yi = d,
+                                vi = d_var,
+                                data = df_data_d |> 
+                                  filter(published == "yes"))
+tf_pubonly <- trimfill(mod_trimfill_pubonly)
+```
+
+```{r}
+mod_trimfill_all <- rma.uni(yi = d,
+                            vi = d_var,
+                            data = df_data_d)
+tf_all <- trimfill(mod_trimfill_all)
+```
+
+Egger's test
+```{r}
+mod_egger_pubonly <- rma.mv(yi = d,
+                            V = d_var,
+                            random = ~ 1 | study/ppt_grp,
+                            mods = ~ d_var,
+                            data = df_data_d |> 
+                              filter(published == "yes"))
+summary(mod_egger_pubonly)
+```
+
