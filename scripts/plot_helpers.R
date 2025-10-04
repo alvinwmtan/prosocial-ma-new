@@ -1,4 +1,9 @@
-PLOT_COL <- "slateblue3"
+PLOT_COL <- "deepskyblue3"
+PUB_SCALE <- scale_shape_manual(
+  values = c(1, 16),
+  labels = c("Unpublished", "Published"),
+  name = "Publication status"
+)
 
 study_label <- function(study) {
   study |>
@@ -55,8 +60,8 @@ make_forest_plot <- function(df, ma, diamond_y = -1, diamond_height = 0.4,
     ) +
     # forest points
     geom_errorbarh(aes(xmin = prop_ci.lb, xmax = prop_ci.ub), height = 0.5) +
-    geom_point(aes(x = prop, size = weight),
-      col = PLOT_COL, shape = 15
+    geom_point(aes(x = prop, size = weight, shape = published),
+      col = PLOT_COL
     ) +
     # summary
     geom_hline(
@@ -71,6 +76,11 @@ make_forest_plot <- function(df, ma, diamond_y = -1, diamond_height = 0.4,
       x = x_min + 0.02, y = diamond_y,
       label = "Random effects model",
       hjust = 0, size = 3, fontface = "bold"
+    ) +
+    annotate("text",
+      x = x_max - 0.02, y = diamond_y,
+      label = sprintf("%.2f [%.2f, %.2f]", summary_prop, summary_prop_ci.lb, summary_prop_ci.ub),
+      hjust = 1, size = 3, fontface = "bold"
     ) +
     # text
     geom_text(aes(x = x_min + 0.02, label = study),
@@ -120,6 +130,12 @@ make_forest_plot <- function(df, ma, diamond_y = -1, diamond_height = 0.4,
       expand = c(0, 0)
     ) +
     scale_size_continuous(range = c(1, 3), guide = "none") +
+    scale_shape_manual(
+      values = c(0, 15),
+      labels = c("Unpublished", "Published"),
+      name = "Publication status",
+      guide = "none"
+    ) +
     coord_cartesian(clip = "off") +
     labs(
       x = "Proportion preferring prosocial agent",
@@ -145,10 +161,10 @@ make_moderator_plot <- function(df, ma) {
   df |>
     ggplot(aes(x = .data[[moderator_name]], y = d_to_prop(d))) +
     geom_quasirandom(
-      aes(size = weight),
-      col = PLOT_COL, alpha = .5, width = .3
+      aes(size = weight, shape = published),
+      col = PLOT_COL, alpha = .7, width = .3
     ) +
-    geom_boxplot(width = .2, alpha = .7) +
+    geom_boxplot(width = .2, alpha = .8) +
     geom_point(
       data = as_tibble(emm) |>
         mutate(prop = d_to_prop(emmean)),
@@ -182,5 +198,6 @@ make_moderator_plot <- function(df, ma) {
     scale_size_continuous(
       range = c(1, 3),
       guide = "none"
-    )
+    ) +
+    PUB_SCALE
 }
