@@ -202,12 +202,18 @@ ggsave("figs/forest_plot.png",
 ```
 
 ```{r}
-df_data_agg_trans |> 
+p_forest_sorted <- df_data_agg_trans |> 
   mutate(prec = 1 / (d_var + ma_agg$tau2),
          weight = prec / sum(prec)) |> 
   arrange(prop) |> 
   mutate(id = row_number()) |>
   make_forest_plot(ma_re)
+
+ggsave("figs/forest_plot_sorted.png",
+       p_forest_sorted,
+       width = 7, 
+       height = 9,
+       dpi = 500)
 ```
 
 ## Main moderators
