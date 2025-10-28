@@ -307,17 +307,13 @@ p_n <- df_data_d |>
 p_n
 ```
 
-Suspicious of outliers. Redo without outliers, using Hampel filter
+Suspicious of outliers. Redo without outliers
 ```{r}
-df_data_d_logn <- df_data_d |> 
-  mutate(log_n = log(ni))
-n_lb <- median(df_data_d_logn$log_n) - 
-  3 * mad(df_data_d_logn$log_n, constant = 1)
-n_ub <- median(df_data_d_logn$log_n) +
-  3 * mad(df_data_d_logn$log_n, constant = 1)
-df_data_d_noout <- df_data_d_logn |>
-  filter(log_n >= n_lb,
-         log_n <= n_ub)
+df_data_d_noout <- df_data_d |>
+  mutate(log_n = log(ni),
+         log_n_z = scale(log_n)[,1]) |> 
+  filter(log_n_z >= -3,
+         log_n_z <= 3)
 
 mod_n_noout <- rma.mv(yi = d,
                         V = d_var,

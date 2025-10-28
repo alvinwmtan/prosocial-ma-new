@@ -35,6 +35,34 @@ print_est_ci <- function(x, ci.lb, ci.ub) {
   glue("{print_num(x)} [{print_num(ci.lb)}, {print_num(ci.ub)}]")
 }
 
+print_p <- function(p) {
+  if (p < .001) {
+    "$p <$ .001"
+  } else {
+    glue("$p =$ {print_num(p, 3)}")
+  }
+}
+
+print_qm <- function(mod) {
+  glue("$QM$({mod$QMdf[1]}) = {print_num(mod$QM)}, {print_p(mod$QMp)}")
+}
+
+print_emm <- function(emm_df, d_to_prop = TRUE) {
+  if (d_to_prop) {
+    glue(
+      "{print_num(d_to_prop(emm_df$emmean[1]))} ",
+      "[{print_num(d_to_prop(emm_df$asymp.LCL[1]))}, ",
+      "{print_num(d_to_prop(emm_df$asymp.UCL[1]))}]"
+    )
+  } else {
+    glue(
+      "{print_num(emm_df$emmean[1])} ",
+      "[{print_num(emm_df$asymp.LCL[1])}, ",
+      "{print_num(emm_df$asymp.UCL[1])}]"
+    )
+  }
+}
+
 separate_contrasts <- function(cons) {
   cons_df <- cons |>
     as_tibble() |>
