@@ -1,0 +1,181 @@
+study;ID;ID_study;mean_age_days;age_group;year;published;H_Lab;nationality;scenarios;stimuli;stimuli_2;question;measure;choice_object;xi;ni;s;x1;x2;t
+Hamlin_et_al_2007;1;1;185;young;2007;yes;yes;North_America;help_hinder;live_show;real;Other;reach;shapes;12;12;;;;
+Hamlin_et_al_2007;1;2;296;young;2007;yes;yes;North_America;help_hinder;live_show;real;Other;reach;shapes;14;16;;;;
+Dunfield_Kuhlmeier_2010;2;1;634;old;2010;yes;no;North_America;help_hinder;live_show;real;No;help;experimenters;12;16;;;;
+Hamlin_et_al_2010;3;1;104;young;2010;yes;yes;North_America;help_hinder;live_show;real;No;visual;shapes;10;12;;13.12;6.22;2.21
+Geraci_Surian_2011;4;1;323;young;2011;yes;no;Europe;fair_unfair;movies;cartoon;Other;reach;shapes;9;16;;;;
+Geraci_Surian_2011;4;2;480;old;2011;yes;no;Europe;fair_unfair;movies;cartoon;Other;reach;shapes;14;17;;;;
+Hamlin_Wynn_2011;5;1;154;young;2011;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;13;18;;;;
+Hamlin_Wynn_2011;5;2;267;young;2011;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;12;16;;;;
+Hamlin_Wynn_2011;5;3;109;young;2011;yes;yes;North_America;give_take;live_show;real;No;visual;puppets;11;12;;14.29;2.91;4.06
+Hamlin_Wynn_2011;5;4;147;young;2011;yes;yes;North_America;give_take;live_show;real;Who do you like;reach;puppets;10;12;;;;
+Hamlin_et_al_2011;6;1;150;young;2011;yes;yes;North_America;give_take;live_show;real;Who do you like;reach;puppets;12;16;;;;
+Hamlin_et_al_2011;6;2;240;young;2011;yes;yes;North_America;give_take;live_show;real;Who do you like;reach;puppets;12;16;;;;
+Hamlin_et_al_2011;6;3;241;young;2011;yes;yes;North_America;give_take;live_show;real;Who do you like;reach;puppets;13;16;;;;
+Hamlin_et_al_2011;6;4;585;old;2011;yes;yes;North_America;give_take;live_show;real;Who do you like;reach;puppets;25;32;;;;
+Hamlin_et_al_2011;6;5;627;old;2011;yes;yes;North_America;give_take;live_show;real;Other;help;puppets;13;16;;;;
+Scarf_et_al_2012;7;1;297;young;2012;yes;no;Oceania;help_hinder;live_show;real;Other;reach;shapes;12;16;;;;
+Scarf_et_al_2012;7;2;295;young;2012;yes;no;Oceania;help_hinder;live_show;real;Other;reach;shapes;4;16;;;;
+Scarf_et_al_2012;7;3;295;young;2012;yes;no;Oceania;help_hinder;live_show;real;Other;reach;shapes;8;16;;;;
+Dahl_et_al_2013;8;1;528;old;2013;yes;no;North_America;give_take;live_show;real;No;help;experimenters;4;10;;;;
+Dahl_et_al_2013;8;2;660;old;2013;yes;no;North_America;give_take;live_show;real;No;help;experimenters;9;12;;;;
+Dahl_et_al_2013;8;3;783;old;2013;yes;no;North_America;give_take;live_show;real;No;help;experimenters;11;12;;;;
+Hamlin_2013;9;1;148;young;2013;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;10;16;;;;
+Hamlin_2013;9;2;234;young;2013;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;14;16;;;;
+Hamlin_2013;9;3;150;young;2013;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;8;16;;;;
+Hamlin_2013;9;4;238;young;2013;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;14;16;;;;
+Hamlin_2013;9;5;152;young;2013;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;6;16;;;;
+Hamlin_2013;9;6;242;young;2013;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;14;16;;;;
+Hamlin_2013;9;7;146;young;2013;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;13;16;;;;
+Hamlin_et_al_2013;10;1;303;young;2013;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;24;30;;;;
+Buon_et_al_2014;11;1;300;young;2014;yes;no;Europe;other;movies;real;No;reach;experimenters;24;34;;;;
+Burns_Sommerville_2014;12;1;460;old;2014;yes;no;North_America;fair_unfair;live_show;real;No;reach;experimenters;14;19;;;;
+Hamlin 2014;13;1;139;young;2014;yes;yes;North_America;give_take;live_show;real;Who do you like;reach;puppets;25;28;;;;
+Hamlin 2014;13;2;139;young;2014;yes;yes;North_America;give_take;live_show;real;Who do you like;reach;puppets;18;27;;;;
+Cowell_Decety_2015;14;1;561;old;2015;yes;no;North_America;help_hinder;movies;cartoon;NA;reach;shapes;27;54;;;;
+Hamlin_2015;15;1;278;young;2015;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;20;24;;;;
+Hamlin_2015;15;2;271;young;2015;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;9;24;;;;
+Hamlin_2015;15;3;274;young;2015;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;19;25;;;;
+Hamlin_2015;15;4;280;young;2015;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;12;25;;;;
+Raggio_et_al_2015;16;1;582;old;2015;yes;no;Europe;help_hinder;live_show;real;Who do you like;reach;puppets;3;10;;;;
+Salvadori_et_al_2015;17;1;269;young;2015;yes;no;Europe;help_hinder;live_show;real;No;reach;puppets;15;24;;;;
+Salvadori_et_al_2015;17;2;270;young;2015;yes;no;Europe;help_hinder;live_show;real;Who do you like;reach;puppets;12;24;;;;
+Scola_et_al_2015;18;1;570;old;2015;yes;no;Europe;give_take;movies;cartoon;NA;reach;shapes;12;14;;;;
+Scola_et_al_2015;18;2;960;old;2015;yes;no;Europe;give_take;movies;cartoon;NA;reach;shapes;18;25;;;;
+DesChamps_et_al_2016;19;1;452;old;2016;yes;no;North_America;fair_unfair;movies;real;No;visual;experimenters;;36;;;;0.22
+DesChamps_et_al_2016;19;2;459;old;2016;yes;no;North_America;fair_unfair;live_show;real;No;visual;experimenters;;21;;;;1.42
+DesChamps_et_al_2016;19;3;388;old;2016;yes;no;North_America;fair_unfair;movies;real;No;visual;experimenters;;36;;;;0.32
+Kanakogi_et_al_2017;20;1;192;young;2017;yes;no;Asia;other;movies;cartoon;NA;reach;shapes;17;20;;;;
+Nighbor_et_al_2017;21;1;186;young;2017;yes;no;North_America;help_hinder;live_show;real;Other;reach;puppets;9;11;;;;
+Nighbor_et_al_2017;21;2;363;young;2017;yes;no;North_America;help_hinder;live_show;real;Other;reach;puppets;4;9;;;;
+Steckler_et_al_2017;22;1;267;young;2017;yes;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;15;16;;;;
+Surian_Franchin_2017;23;1;629;old;2017;yes;no;Europe;fair_unfair;live_show;real;Other;help;experimenters;12;17;;;;
+Surian_Franchin_2017;23;2;908;old;2017;yes;no;Europe;fair_unfair;live_show;real;Other;help;experimenters;12;16;;;;
+Franchin_et_al_2018;24;1;636;old;2018;yes;no;Europe;fair_unfair;live_show;real;Other;help;experimenters;15;20;;;;
+Geraci_DiNuovo_2018;25;1;844;old;2018;yes;no;Europe;fair_unfair;live_show;real;Who do you like;visual;puppets;22;32;;;;
+Geraci_DiNuovo_2018;25;2;852;old;2018;yes;no;Europe;fair_unfair;live_show;real;Who do you like;visual;puppets;20;28;;;;
+Geraci_DiNuovo_2018;25;3;805;old;2018;yes;no;Europe;fair_unfair;live_show;real;Who do you like;visual;puppets;18;31;;;;
+Holvoet_et_al_2018;26;1;185;young;2018;yes;no;Europe;give_take;movies;cartoon;No;visual;experimenters;;20;0.440;;;-0.89
+Lucca_et_al_2018;27;1;401;old;2018;yes;no;North_America;fair_unfair;movies;real;No;reach;experimenters;11;14;;;;
+Lucca_et_al_2018;27;2;520;old;2018;yes;no;North_America;fair_unfair;movies;real;No;reach;experimenters;13;16;;;;
+Franchin_et_al_2019;28;1;602;old;2019;yes;no;Europe;fair_unfair;live_show;real;Other;reach;puppets;18;24;;;;
+Holvoet_et_al_2019;29;1;191;young;2019;yes;no;Europe;help_hinder;movies;cartoon;No;visual;experimenters;;20;0.449;;;
+Holvoet_et_al_2019;29;2;377;young;2019;yes;no;Europe;help_hinder;movies;cartoon;No;visual;experimenters;;20;0.535;;;
+Holvoet_et_al_2019;29;3;548;old;2019;yes;no;Europe;help_hinder;movies;cartoon;No;visual;experimenters;;20;0.495;;;
+Holvoet_et_al_2019;29;4;185;young;2019;yes;no;Europe;other;movies;cartoon;No;visual;experimenters;;20;0.531;;;
+Holvoet_et_al_2019;29;5;368;young;2019;yes;no;Europe;other;movies;cartoon;No;visual;experimenters;;20;0.498;;;
+Holvoet_et_al_2019;29;6;556;old;2019;yes;no;Europe;other;movies;cartoon;No;visual;experimenters;;20;0.485;;;
+Holvoet_et_al_2019;29;7;190;young;2019;yes;no;Europe;give_take;movies;cartoon;No;visual;experimenters;;20;0.485;;;
+Holvoet_et_al_2019;29;8;366;young;2019;yes;no;Europe;give_take;movies;cartoon;No;visual;experimenters;;20;0.490;;;
+Holvoet_et_al_2019;29;9;549;old;2019;yes;no;Europe;give_take;movies;cartoon;No;visual;experimenters;;20;0.503;;;
+Nava_et_al_2019;30;1;600;old;2019;yes;no;Europe;other;movies;real;Who do you like;reach;experimenters;27;32;;;;
+Nava_et_al_2019;30;2;600;old;2019;yes;no;Europe;other;movies;real;No;help;experimenters;18;22;;;;
+Nava_et_al_2019;30;3;204;young;2019;yes;no;Europe;other;movies;real;Who do you like;reach;experimenters;11;20;;;;
+Nava_et_al_2019;30;4;204;young;2019;yes;no;Europe;other;movies;real;No;reach;experimenters;7;18;;;;
+Geraci_2020a;31;1;632;old;2020;yes;no;Europe;other;movies;real;Who do you like;reach;puppets;28;50;;;;
+Geraci_2020a;31;2;632;old;2020;yes;no;Europe;other;movies;real;Who do you like;reach;puppets;38;50;;;;
+Geraci_2020a;31;3;632;old;2020;yes;no;Europe;other;movies;real;Who do you like;reach;puppets;34;50;;;;
+Geraci_2020b;32;1;607;old;2020;yes;no;Europe;other;movies;real;Other;reach;puppets;15;18;;;;
+Geraci_2020b;32;2;607;old;2020;yes;no;Europe;other;movies;real;Other;reach;puppets;14;18;;;;
+Geraci_2020b;32;3;576;old;2020;yes;no;Europe;other;movies;real;Other;help;puppets;15;18;;;;
+Schlingloff_et_al_2020;33;1;455;old;2020;yes;no;Europe;help_hinder;movies;cartoon;Who do you like;reach;shapes;16;32;;;;
+Singh_2020;34;1;233;young;2020;yes;no;Asia;give_take;live_show;real;Who do you like;visual;puppets;;36;;1.11;1.45;-0.24
+Singh_2020;34;2;234;young;2020;yes;no;Asia;give_take;live_show;real;Who do you like;visual;puppets;;36;;1.70;1.24;2.64
+Surian_Margoni_2020;35;1;624;old;2020;yes;no;Europe;fair_unfair;movies;real;Who do you like;reach;puppets;4;9;;;;
+Surian_Margoni_2020;35;2;639;old;2020;yes;no;Europe;fair_unfair;movies;real;Who do you like;reach;puppets;6;11;;;;
+Surian_Margoni_2020;35;3;620;old;2020;yes;no;Europe;fair_unfair;movies;real;Who do you like;reach;puppets;5;11;;;;
+Vaporova_Zmyj_2020;36;1;275;young;2020;yes;no;Europe;help_hinder;movies;real;Who do you like;reach;puppets;10;23;;;;
+Vaporova_Zmyj_2020;36;2;422;old;2020;yes;no;Europe;help_hinder;movies;real;Who do you like;reach;puppets;13;29;;;;
+LoheideNiesmann_et_al_2021;37;1;732;old;2021;yes;no;Europe;help_hinder;live_show;real;Other;reach;puppets;65;107;;;;
+Geraci_Simion_2022;38;1;515;old;2022;yes;no;Europe;other;movies;cartoon;Other;reach;shapes;15;18;;;;
+Geraci_et_al_2022;39;1;264;young;2022;yes;no;Europe;fair_unfair;movies;cartoon;NA;reach;shapes;18;27;;;;
+Geraci_et_al_2022;39;2;264;young;2022;yes;no;Europe;fair_unfair;movies;cartoon;NA;visual;shapes;;27;;7.24;6.70;0.73
+Tan_Hamlin_2022a;40;1;184;young;2022;yes;yes;North_America;help_hinder;movies;cartoon;Other;reach;shapes;15;38;;;;
+Tan_Hamlin_2022a;40;2;359;young;2022;yes;yes;North_America;help_hinder;movies;cartoon;Other;reach;shapes;11;24;;;;
+Tan_Hamlin_2022b;41;1;154;young;2022;yes;yes;North_America;help_hinder;movies;cartoon;No;visual;shapes;17;34;;;;0.80
+Biro_2023;42;1;361;young;2023;yes;no;Europe;other;movies;cartoon;Who do you like;reach;shapes;32;47;;;;
+Geraci_et_al_2023;43;1;213;young;2023;yes;no;Europe;other;movies;cartoon;NA;reach;shapes;15;19;;;;
+Geraci_Surian_2023;44;1;123;young;2023;yes;no;Europe;fair_unfair;movies;cartoon;No;visual;shapes;;28;;18.09;12.30;2.25
+Licht_et_al_2023;45;1;169;young;2023;yes;no;Europe;help_hinder;movies;real;Other;reach;puppets;10;21;;;;
+Woo_Spelke_2023a;46;1;452;old;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;reach;puppets;17;22;;;;
+Woo_Spelke_2023a;46;2;452;old;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;reach;puppets;19;24;;;;
+Woo_Spelke_2023a;46;3;447;old;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;visual;puppets;18;24;0.582;;;2.71
+Woo_Spelke_2023a;46;4;447;old;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;visual;puppets;18;24;0.570;;;2.36
+Woo_Spelke_2023a;46;5;447;old;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;visual;puppets;20;24;0.584;;;3.43
+Woo_Spelke_2023b;47;1;236;young;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;reach;puppets;4;24;;;;
+Woo_Spelke_2023b;47;2;452;old;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;reach;puppets;21;24;;;;
+Woo_Spelke_2023b;47;3;244;young;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;visual;puppets;13;16;0.583;12.32;8.73;2.62
+Woo_Spelke_2023b;47;4;244;young;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;visual;puppets;19;24;0.571;11.49;8.55;2.50
+Woo_Spelke_2023b;47;5;450;old;2023;yes;no;North_America;help_hinder;movies;real;Who do you like;visual;puppets;21;24;0.564;12.08;9.37;3.05
+Tan_Hamlin_2024;48;1;539;old;2024;yes;yes;North_America;help_hinder;movies;cartoon;Other;visual;shapes;18;42;;11.74;13.34;-2.24
+Tan_Hamlin_2024;48;2;539;old;2024;yes;yes;North_America;help_hinder;movies;cartoon;Other;reach;shapes;15;25;;;;
+Tan_Hamlin_2024;48;3;715;old;2024;yes;yes;North_America;help_hinder;movies;cartoon;Other;visual;shapes;14;38;;9.81;11.43;1.90
+Tan_Hamlin_2024;48;4;715;old;2024;yes;yes;North_America;help_hinder;movies;cartoon;Other;reach;shapes;19;33;;;;
+Geraci_et_al_2025;49;1;5;young;2025;yes;yes;Europe;help_hinder;movies;cartoon;No;visual;shapes;14;18;;45.60;30.10;3.73
+Geraci_et_al_2025;49;2;5;young;2025;yes;yes;Europe;help_hinder;movies;cartoon;No;visual;shapes;14;18;;45.20;28.2;3.46
+Lucca_et_al_2025;50;1;247;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;4;9;;;;
+Lucca_et_al_2025;50;2;242;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;5;10;;;;
+Lucca_et_al_2025;50;3;284;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;1;5;;;;
+Lucca_et_al_2025;50;4;285;young;2025;yes;yes;Asia;help_hinder;movies;real;Who do you like;reach;shapes;5;12;;;;
+Lucca_et_al_2025;50;5;233;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;3;8;;;;
+Lucca_et_al_2025;50;6;270;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;7;11;;;;
+Lucca_et_al_2025;50;7;247;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;3;4;;;;
+Lucca_et_al_2025;50;8;242;young;2025;yes;yes;Oceania;help_hinder;movies;real;Who do you like;reach;shapes;4;8;;;;
+Lucca_et_al_2025;50;9;225;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;9;20;;;;
+Lucca_et_al_2025;50;10;273;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;2;10;;;;
+Lucca_et_al_2025;50;11;231;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;5;14;;;;
+Lucca_et_al_2025;50;12;219;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;3;8;;;;
+Lucca_et_al_2025;50;13;253;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;11;17;;;;
+Lucca_et_al_2025;50;14;243;young;2025;yes;yes;NA;help_hinder;movies;real;Who do you like;reach;shapes;6;10;;;;
+Lucca_et_al_2025;50;15;314;young;2025;yes;yes;Asia;help_hinder;movies;real;Who do you like;reach;shapes;12;25;;;;
+Lucca_et_al_2025;50;16;274;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;0;1;;;;
+Lucca_et_al_2025;50;17;255;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;6;13;;;;
+Lucca_et_al_2025;50;18;247;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;5;6;;;;
+Lucca_et_al_2025;50;19;266;young;2025;yes;yes;Oceania;help_hinder;movies;real;Who do you like;reach;shapes;9;18;;;;
+Lucca_et_al_2025;50;20;255;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;1;5;;;;
+Lucca_et_al_2025;50;21;296;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;5;8;;;;
+Lucca_et_al_2025;50;22;280;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;4;6;;;;
+Lucca_et_al_2025;50;23;248;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;10;12;;;;
+Lucca_et_al_2025;50;24;247;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;2;18;;;;
+Lucca_et_al_2025;50;25;233;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;2;8;;;;
+Lucca_et_al_2025;50;26;227;young;2025;yes;yes;Oceania;help_hinder;movies;real;Who do you like;reach;shapes;3;5;;;;
+Lucca_et_al_2025;50;27;282;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;2;8;;;;
+Lucca_et_al_2025;50;28;233;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;4;7;;;;
+Lucca_et_al_2025;50;29;223;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;6;10;;;;
+Lucca_et_al_2025;50;30;245;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;7;10;;;;
+Lucca_et_al_2025;50;31;254;young;2025;yes;yes;Asia;help_hinder;movies;real;Who do you like;reach;shapes;12;23;;;;
+Lucca_et_al_2025;50;32;252;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;8;8;;;;
+Lucca_et_al_2025;50;33;243;young;2025;yes;yes;North_America;help_hinder;movies;real;Who do you like;reach;shapes;4;7;;;;
+Lucca_et_al_2025;50;34;287;young;2025;yes;yes;Europe;help_hinder;movies;real;Who do you like;reach;shapes;6;9;;;;
+Lucca_et_al_2025;50;35;248;young;2025;yes;yes;Oceania;help_hinder;movies;real;Who do you like;reach;shapes;7;9;;;;
+Lucca_et_al_2025;50;36;220;young;2025;yes;yes;Asia;help_hinder;movies;real;Who do you like;reach;shapes;3;5;;;;
+Wu_et_2025;51;1;190;young;2025;yes;no;Asia;help_hinder;movies;cartoon;NA;reach;shapes;83;171;;;;
+Kasperbauer_unpub;52;1;217;young;2012;no;no;North_America;help_hinder;live_show;real;Other;reach;shapes;19;26;;;;
+Abramson_et_al_unpub;53;1;270;young;2016;no;no;Europe;help_hinder;movies;real;Who do you like;reach;puppets;17;31;;;;
+Abramson_et_al_unpub;53;2;540;old;2016;no;no;Europe;help_hinder;movies;real;Who do you like;reach;puppets;28;62;;;;
+Enright_Sommerville_unpub;54;1;630;old;2016;no;no;North_America;fair_unfair;live_show;real;NA;reach;experimenters;10;18;;;;
+Enright_Sommerville_unpub;54;2;630;old;2016;no;no;North_America;fair_unfair;live_show;real;No;help;experimenters;12;15;;;;
+Enright_Sommerville_unpub;54;3;630;old;2016;no;no;North_America;fair_unfair;live_show;real;No;help;experimenters;11;16;;;;
+Enright_Sommerville_unpub;54;4;720;old;2016;no;no;North_America;fair_unfair;live_show;real;NA;reach;experimenters;14;19;;;;
+Enright_Sommerville_unpub;54;5;720;old;2016;no;no;North_America;fair_unfair;live_show;real;No;help;experimenters;7;17;;;;
+Enright_Sommerville_unpub;54;6;720;old;2016;no;no;North_America;fair_unfair;live_show;real;No;help;experimenters;14;20;;;;
+Hamlin_unpub;55;1;231;young;2016;no;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;11;16;;;;
+Hamlin_unpub;55;2;374;young;2016;no;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;7;14;;;;
+Lee_Song_unpub;56;1;192;young;2016;no;no;Asia;help_hinder;movies;cartoon;Who do you like;reach;shapes;12;15;;;;
+Tasimi_Wynn_unpub;57;1;240;young;2016;no;no;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;12;16;;;;
+Tasimi_Wynn_unpub;57;2;450;old;2016;no;no;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;12;16;;;;
+Woo_Hamlin_unpub;58;1;240;young;2016;no;yes;North_America;help_hinder;movies;cartoon;Other;reach;shapes;21;32;;;;
+Woo_Hamlin_unpub;58;2;301;young;2016;no;yes;North_America;help_hinder;movies;cartoon;Other;reach;shapes;15;32;;;;
+Woo_Hamlin_unpub;58;3;364;young;2016;no;yes;North_America;help_hinder;movies;cartoon;Other;reach;shapes;23;32;;;;
+Sitch_unpub;59;1;239;young;2018;no;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;68;115;;;;
+Beaulieu_Dunfield_unpub;60;1;791;old;2020;no;no;North_America;help_hinder;live_show;real;No;help;experimenters;14;19;;;;
+Beaulieu_Dunfield_unpub;60;2;981;old;2020;no;no;North_America;help_hinder;live_show;real;No;help;experimenters;8;11;;;;
+Yuen_Hamlin_unpub;61;1;316;young;2021;no;yes;North_America;help_hinder;movies;cartoon;Who do you like;visual;shapes;18;34;0.538;;;
+Yuen_Hamlin_unpub;61;2;263;young;2021;no;yes;North_America;help_hinder;movies;cartoon;Who do you like;visual;shapes;19;32;0.508;;;
+Yuen_Hamlin_unpub;61;3;306;young;2021;no;yes;North_America;help_hinder;movies;cartoon;Who do you like;visual;shapes;14;32;0.475;;;
+Yuen_et_al_unpub;62;1;512;old;2023;no;yes;North_America;fair_unfair;movies;real;No;reach;experimenters;18;31;;;;
+Woo_et_al_unpub;63;1;357;young;2024;no;yes;North_America;give_take;movies;real;Who do you like;visual;puppets;22;24;;10.06;6.58;5.15
+Hamlin_2025_unpub;64;1;108;young;2025;no;yes;North_America;help_hinder;live_show;cartoon;No;visual;shapes;209;442;;;;
+Hamlin_2025_unpub;64;2;176;young;2025;no;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;170;355;;;;
+Hamlin_2025_unpub;64;3;302;young;2025;no;yes;North_America;help_hinder;live_show;real;Who do you like;reach;puppets;176;353;;;;
+Hamlin_2025_unpub;64;4;731;old;2025;no;yes;North_America;help_hinder;live_show;real;Other;help;puppets;107;214;;;;

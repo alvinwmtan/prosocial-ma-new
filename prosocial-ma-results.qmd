@@ -351,10 +351,10 @@ mod_lab <- rma.mv(yi = d,
                      data = df_data_d)
 
 p_lab <- make_moderator_plot(df_data_d, mod_lab) +
-  labs(x = "lab lab") +
+  labs(x = "Laboratory affiliation") +
   scale_x_discrete(
     limits = c("yes", "no"),
-    labels = str_to_sentence
+    labels = c("Hamlin", "Non-Hamlin")
   )
 
 emm_lab <- emmprep(mod_lab) |> emmeans( ~ H_Lab_narrow) |> as_tibble()
@@ -386,7 +386,7 @@ p_country <- make_moderator_plot(
   labs(x = "Country") +
   scale_x_discrete(
     limits = c("North_America", "Europe", "Asia", "Oceania"),
-    labels = \(x) x |> str_replace_all("_", " ") |> str_to_title()
+    labels = \(x) x |> str_replace_all("_", "\n") |> str_to_title()
   )
 
 emm_country <- emmprep(mod_country) |> emmeans( ~ nationality) |> as_tibble()
@@ -413,7 +413,7 @@ mod_format <- rma.mv(yi = d,
                      data = df_data_d)
 
 p_format <- make_moderator_plot(df_data_d, mod_format) +
-  labs(x = "Presentation format") +
+  labs(x = "Stimuli presentation format") +
   scale_x_discrete(
     limits = c("real", "cartoon"),
     labels = str_to_sentence
@@ -430,7 +430,7 @@ mod_object <- rma.mv(yi = d,
                      data = df_data_d)
 
 p_object <- make_moderator_plot(df_data_d, mod_object) +
-  labs(x = "Choice object type") +
+  labs(x = "Agent type") +
   scale_x_discrete(
     limits = c("shapes", "puppets", "experimenters"),
     labels = str_to_sentence
@@ -452,9 +452,9 @@ p_question <- make_moderator_plot(
   mod_question) +
   scale_x_discrete(
     limits = c("Who do you like", "Other", "No"),
-    labels = c("Who do you like?", "Other question", "No question")
+    labels = c("Who do\nyou like?", "Other", "No question")
   ) +
-  labs(x = "Question type")
+  labs(x = "Prompt type")
 
 emm_question <- emmprep(mod_question) |> emmeans( ~ question) |> as_tibble()
 ```
