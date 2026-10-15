@@ -1,24 +1,32 @@
-calculate_d <- function(method, ni, xi = NULL, s = NULL, t = NULL) {
+calculate_d <- function(method, ni, xi = NULL,
+                        s_mean = NULL, s_sd = NULL, t = NULL) {
   if (method == "success") {
-    d <- (escalc(
+    es <- escalc(
       measure = "PLO",
       xi = xi, ni = ni
-    ))$yi * sqrt(3) / pi
-    d_var <- (escalc(
-      measure = "PLO",
-      xi = xi, ni = ni
-    ))$vi * (3 / (pi^2))
+    )
+    d <- es$yi * sqrt(3) / pi
+    d_var <- es$vi * (3 / (pi^2))
   } else if (method == "proportion") {
-    d <- (s - 0.5) * 2 * sqrt(ni)
-    d_var <- (1 / ni) + (d^2 / (2 * ni))
+    d <- (s_mean - 0.5) / s_sd
+    d_var <- 1 / ni + d^2 / (2 * (ni - 1))
   } else if (method == "ttest") {
     d <- t / sqrt(ni)
-    d_var <- (1 / ni) + (d^2 / (2 * ni))
+    d_var <- 1 / ni + d^2 / (2 * (ni - 1))
   } else {
     d <- NA
     d_var <- NA
   }
-  return(tibble("d" = d, "d_var" = d_var))
+
+  # Hedges' small sample correction
+  df <- ni - 1
+  J <- 1 - 3 / (4 * df - 1)
+  g <- J * d
+  g_var <- J^2 * (
+    1 / ni + d^2 / (2 * df)
+  )
+
+  return(tibble("d" = d, "d_var" = d_var, "g" = g, "g_var" = g_var))
 }
 
 d_to_prop <- function(d) {
@@ -39,12 +47,47 @@ print_p <- function(p) {
   if (p < .001) {
     "$p <$ .001"
   } else {
-    glue("$p =$ {print_num(p, 3)}")
+    glue("$p =$ {print_num(p, 3) |> str_sub(2, 5)}")
   }
 }
 
-print_qm <- function(mod) {
-  glue("$QM$({mod$QMdf[1]}) = {print_num(mod$QM)}, {print_p(mod$QMp)}")
+# print_qm <- function(mod) {
+#   glue("$QM$({mod$QMdf[1]}) = {print_num(mod$QM)}, {print_p(mod$QMp)}")
+# }
+
+omnibus_test <- function(ma, term) {
+  cn <- names(coef(ma))
+
+  if (grepl(":", term)) {
+    terms <- str_split(term, ":", simplify = TRUE)
+    idx <- which(
+      grepl(glue("{terms[[1]]}.*:.*{terms[[2]]}"), cn) |
+        grepl(glue("{terms[[2]]}.*:.*{terms[[1]]}"), cn)
+    )
+  } else {
+    idx <- which(
+      grepl(glue("^{term}"), cn) &
+        !grepl(":", cn)
+    )
+  }
+
+  if (length(idx) == 0) {
+    stop(glue("{term} not found in model coefficients."))
+  }
+
+  anova(ma, btt = idx)
+}
+
+print_qm <- function(ma, term = NULL) {
+  mod <- if (is.null(term)) ma else omnibus_test(ma, term)
+  glue("$Q_M$({mod$QMdf[1]}) = {print_num(mod$QM)}, {print_p(mod$QMp)}")
+}
+
+get_emm <- function(ma, term, tibble = TRUE) {
+  emm <- ma |>
+    emmprep(rg.limit = 13000) |>
+    emmeans(as.formula(paste0("~ ", term)))
+  if (tibble) as_tibble(emm) else emm
 }
 
 print_emm <- function(emm_df, d_to_prop = TRUE) {

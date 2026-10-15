@@ -7,7 +7,6 @@ format:
 ---
 
 ```{r setup, include=F, echo=F}
-library(tidyverse)
 library(here)
 library(glue)
 
@@ -16,12 +15,17 @@ library(ggpubr)
 library(ggbeeswarm)
 
 library(MAd)
+library(mice)
 library(metafor)
 library(metaviz)
 library(emmeans)
+library(rcompanion)
+
+library(tidyverse)
 
 source(here("scripts", "smd_helpers.R"))
 source(here("scripts", "plot_helpers.R"))
+source(here("scripts", "assoc_helpers.R"))
 
 theme_set(theme_bw() +
             theme(panel.grid = element_blank()))
@@ -32,23 +36,65 @@ knitr::opts_chunk$set(echo = FALSE,
 ```
 
 ```{r data}
-df_data <- read_csv(here("data", "data_meta_new_ppt.csv")) |> 
-  mutate(s = as.numeric(s),
+df_qn <- read_csv(here("data", "data_qn_guess.csv"))
+
+df_data <- read_csv(here("data", "data_meta_new_ppt_reg.csv")) |> 
+  left_join(df_qn |> select(-methods, -comment), 
+            by = join_by(study, ID, ID_study, ppt_grp)) |> 
+  mutate(question = coalesce(question.x, question.y),
+         s_mean = as.numeric(s_mean),
+         s_sd = as.numeric(s_sd),
          t = as.numeric(t),
-         scenarios = factor(scenarios) |> 
-           fct_relevel("help_hinder", "fair_unfair", "give_take", "other"),
-         measure = factor(measure) |>
-           fct_relevel("reach", "help", "visual")) |> 
-  rename(scenario = scenarios)
+         log_ni = log(ni),
+         stimuli_c = str_c(stimuli, stimuli_2, sep = "-")) |> 
+  rename(scenario = scenarios) |> 
+  select(-stimuli, -stimuli_2, -question.x, -question.y) |> 
+  mutate(nationality = factor(nationality, 
+                              levels = c("North_America", "Europe", "Asia", "Oceania", "South_America")),
+         scenario = factor(scenario, levels = c("help_hinder", "fair_unfair", "give_take", "other")),
+         choice_object = factor(choice_object, levels = c("shapes", "puppets", "experimenters")),
+         question = factor(question, levels = c("Who do you like", "Other", "No")),
+         stimuli_c = factor(stimuli_c, levels = c("live_show-real", "movies-real", "movies-cartoon")),
+         measure = factor(measure, levels = c("reach", "help", "visual")),
+         setting = factor(setting, levels = c("in_person", "online")),
+         H_Lab_wide = if_else(study %in% c("Woo_Spelke_2023a", "Woo_Spelke_2023b"),
+                              "yes", H_Lab_narrow),
+         H_Lab_narrow = factor(H_Lab_narrow, levels = c("yes", "no")),
+         H_Lab = factor(H_Lab, levels = c("yes", "no")),
+         H_Lab_wide = factor(H_Lab_wide, levels = c("yes", "no")),
+         G_Lab = factor(G_Lab, levels = c("yes", "no")),
+         preregistered = factor(preregistered, levels = c("yes", "no"))) |>
+  mutate(across(
+    c(nationality, scenario, choice_object, question, stimuli_c, measure, setting,
+      H_Lab_narrow, H_Lab, H_Lab_wide, G_Lab, preregistered),
+    \(x) `contrasts<-`(x, value = contr.sum(nlevels(x)))
+  ))
 
 df_data_d <- df_data |> 
   mutate(d_calc = case_when(
-    is.na(t) & !is.na(s) ~ calculate_d("proportion", ni = ni, s = s),
+    is.na(t) & !is.na(s_sd) ~ calculate_d("proportion", ni = ni, s_mean = s_mean, s_sd = s_sd),
     !is.na(t) ~ calculate_d("ttest", ni = ni, t = t),
     .default = calculate_d("success", ni = ni, xi = xi)
   )) |> 
   unnest(cols = c(d_calc)) |> 
-  mutate(d_se = sqrt(d_var))
+  mutate(d_se = sqrt(d_var),
+         g_se = sqrt(g_var)) |> 
+  filter(!is.infinite(g_var)) |> 
+  mutate(log_ni = log(ni),
+         age_sc = scale(mean_age_days)[,1],
+         lni_sc = scale(log_ni)[,1],
+         lni_sc_noout = replace_when(lni_sc, lni_sc >= 3 ~ NA))
+
+moderators <- c("age_sc", "lni_sc", "nationality", 
+                "scenario", "choice_object", "question",
+                "stimuli_c", "measure", # "setting",
+                "H_Lab_narrow", "G_Lab", "preregistered")
+
+fit_rma <- partial(rma.mv, 
+                   yi = g, 
+                   V = g_var, 
+                   random = ~ 1 | study/ppt_grp, 
+                   data = df_data_d)
 ```
 
 # Results
@@ -58,34 +104,31 @@ df_data_d <- df_data |>
 ```{r ma-full}
 df_data_agg <- agg(
   id = ID,
-  es = d,
-  var = d_var,
+  es = g,
+  var = g_var,
   method = "BHHR",
   data = df_data_d
 ) |> 
   mutate(study = df_data_d$study |> unique() |> study_label()) |> 
-  rename(d = es,
-         d_var = var) |> 
-  mutate(d_se = sqrt(d_var))
+  rename(g = es,
+         g_var = var) |> 
+  mutate(g_se = sqrt(g_var))
 
 df_data_agg_trans <- df_data_agg |> 
-  mutate(d_ci.lb = d - stats::qnorm(0.975) * d_se,
-         d_ci.ub = d + stats::qnorm(0.975) * d_se,
-         prop = d_to_prop(d),
-         prop_ci.lb = d_to_prop(d_ci.lb),
-         prop_ci.ub = d_to_prop(d_ci.ub)) |> 
+  mutate(g_ci.lb = g - stats::qnorm(0.975) * g_se,
+         g_ci.ub = g + stats::qnorm(0.975) * g_se,
+         prop = d_to_prop(g),
+         prop_ci.lb = d_to_prop(g_ci.lb),
+         prop_ci.ub = d_to_prop(g_ci.ub)) |> 
   left_join(df_data_d |> 
               select(ID, published) |> 
               distinct(),
             by = join_by(id == ID))
 
-ma_agg <- rma.uni(yi = d,
-                  vi = d_var,
+ma_agg <- rma.uni(yi = g,
+                  vi = g_var,
                   data = df_data_agg)
-ma_re <- rma.mv(yi = d,
-                V = d_var,
-                random = ~ 1 | study/ppt_grp,
-                data = df_data_d)
+ma_re <- fit_rma()
 ```
 
 ```{r fig-forest}
@@ -94,7 +137,7 @@ ma_re <- rma.mv(yi = d,
 #| fig-height: 9
 
 p_forest_sorted <- df_data_agg_trans |> 
-  mutate(prec = 1 / (d_var + ma_agg$tau2),
+  mutate(prec = 1 / (g_var + ma_agg$tau2),
          weight = prec / sum(prec)) |> 
   arrange(prop) |> 
   mutate(id = row_number()) |>
@@ -105,34 +148,37 @@ p_forest_sorted
 
 We begin by calculating an average point estimate of the effect size for infants' preference for prosocial over antisocial agents, reporting both Cohen's _d_ and its back-transformation into raw proportions to improve interpretability. The included studies contributed a total of $k =$ `r nrow(df_data)` effect sizes to analyze (dataset available at [OSF](https://osf.io/r4av3/?view_only=aa69cf6c08884058b0cc72a75d55347c)). We used a random effects meta-analysis to account for heterogeneity across studies, with a nested random structure of participant group within paper. We report all estimates with their 95\% confidence intervals.
 
-A forest plot for the meta-analysis is shown in @fig-forest; note that the forest plot displays effect sizes aggregated by paper for concision, but all meta-analyses treated each effect size separately. The estimated meta-analytic effect size was Cohen's $d =$ `r print_est_ci(ma_re$b[1], ma_re$ci.lb, ma_re$ci.ub)`. When back-transformed to raw proportions, this effect size corresponds to `r print_est_ci(d_to_prop(ma_re$b[1]), d_to_prop(ma_re$ci.lb), d_to_prop(ma_re$ci.ub))`. A significant Q-test confirmed the presence of heterogeneity, $Q$(`r ma_re$QEdf`) = `r print_num(ma_re$QE, 2)`, `r print_p(ma_re$QEp)`. The estimated variance across papers was $\sigma^2 =$ `r print_num(ma_re$sigma2[1])`, and the estimate variance across participant groups within papers was $\sigma^2 =$ `r print_num(ma_re$sigma2[2])`. Given this variability between studies, we proceeded to examine potential moderators to identify factors that might account for differences in infants' sociomoral preferences across experiments.
+A forest plot for the meta-analysis is shown in @fig-forest; note that the forest plot displays effect sizes aggregated by paper for concision, but all meta-analyses treated each effect size separately. The estimated meta-analytic effect size was Hedges' $g =$ `r print_est_ci(ma_re$b[1], ma_re$ci.lb, ma_re$ci.ub)`. When back-transformed to raw proportions, this effect size corresponds to `r print_est_ci(d_to_prop(ma_re$b[1]), d_to_prop(ma_re$ci.lb), d_to_prop(ma_re$ci.ub))`. A significant Q-test confirmed the presence of heterogeneity, $Q$(`r ma_re$QEdf`) = `r print_num(ma_re$QE, 2)`, `r print_p(ma_re$QEp)`. The estimated variance across papers was $\sigma^2 =$ `r print_num(ma_re$sigma2[1])`, and the estimate variance across participant groups within papers was $\sigma^2 =$ `r print_num(ma_re$sigma2[2])`. Given this variability between studies, we proceeded to examine potential moderators to identify factors that might account for differences in infants' sociomoral preferences across experiments.
 
 ## Publication Bias
 
 ```{r ma-pub}
-mod_pub <- rma.mv(yi = d,
-                  V = d_var,
-                  random = ~ 1 | study/ppt_grp,
-                  mods = ~ published,
-                  data = df_data_d)
+mod_pub <- fit_rma(mods = ~ published)
 
-p_pub <- make_moderator_plot(df_data_d, mod_pub) +
-  labs(x = "Publication status") +
-  scale_x_discrete(
-    limits = c("yes", "no"),
-    labels = c("Published", "Unpublished")
-  )
+# p_pub <- make_moderator_plot(df_data_d, mod_pub) +
+#   labs(x = "Publication status") +
+#   scale_x_discrete(
+#     limits = c("yes", "no"),
+#     labels = c("Published", "Unpublished")
+#   )
 ```
 
 ```{r eggers}
 df_data_pubonly <- df_data_d |> 
-  filter(published == "yes")
+  filter(published == "yes") |> 
+  mutate(inv_ni = 1 / ni)
 
-mod_egger_pubonly <- rma.mv(yi = d,
-                            V = d_var,
+mod_egger_pubonly <- rma.mv(yi = g,
+                            V = g_var,
                             random = ~ 1 | study/ppt_grp,
-                            mods = ~ d_se,
+                            mods = ~ g_se,
                             data = df_data_pubonly)
+
+mod_peters_pubonly <- rma.mv(yi = g,
+                             V = g_var,
+                             random = ~ 1 | study/ppt_grp,
+                             mods = ~ inv_ni,
+                             data = df_data_pubonly)
 ```
 
 ```{r fig-funnel}
@@ -143,7 +189,7 @@ mod_egger_pubonly <- rma.mv(yi = d,
 summary_es <- ma_re$b[1,1]
 summary_tau2 <- 0 # ma_re$tau2
 summary_se <- ma_re$se
-max_se <- max(df_data_d$d_se) + max(df_data_d$d_se) * 0.2
+max_se <- max(df_data_d$g_se) + max(df_data_d$g_se) * 0.2
 
 funneldata <- tibble(
   x = c(summary_es - stats::qnorm(0.975) * sqrt(max_se^2 + summary_tau2),
@@ -162,7 +208,7 @@ funneldata_dense <- funneldata |>
   unnest(interp)
 
 p_funnel <- df_data_d |> 
-  ggplot(aes(x = d, y = d_se)) +
+  ggplot(aes(x = g, y = g_se)) +
   geom_path(data = funneldata, 
             aes(x = x, y = y),
             lty = "dashed",
@@ -181,145 +227,107 @@ p_funnel <- df_data_d |>
   scale_y_reverse() +
   PUB_SCALE +
   coord_cartesian(ylim = c(max_se * 0.95, 0)) +
-  labs(x = "Cohen's d",
+  labs(x = "Hedges' g",
        y = "Standard error") +
   theme(legend.position = "bottom")
 
 p_funnel
 ```
 
-An initial analysis examined _publication status_ (published vs. unpublished) as a potential moderator of effect size. @fig-funnel displays a funnel plot of the effect sizes. No significant moderation was observed, `r print_qm(mod_pub)`. We assessed evidence of publication bias (@Ferguson2012) using the $k =$ `r df_data_d |> filter(published == "yes") |> nrow()` published effect sizes. We used a generalisation of Egger's test (@Egger1997), regressing the effect sizes from their standard errors; publication bias was indicated if the intercept was significantly different than zero. We did not find presence of publication bias, with the intercept estimated as `r print_est_ci(mod_egger_pubonly$b[1], mod_egger_pubonly$ci.lb[1], mod_egger_pubonly$ci.ub[1])`, `r print_p(mod_egger_pubonly$pval[1])`. 
+An initial analysis examined _publication status_ (published vs. unpublished) as a potential moderator of effect size. @fig-funnel displays a funnel plot of the effect sizes. No significant moderation was observed, `r print_qm(mod_pub)`. We assessed evidence of publication bias (@Ferguson2012) using the $k =$ `r df_data_d |> filter(published == "yes") |> nrow()` published effect sizes. We used a generalisation of Egger's test [@Egger1997], regressing the effect sizes from their standard errors; publication bias was indicated if the intercept was significantly different than zero. We found evidence of publication bias, with the intercept estimated as `r print_est_ci(mod_egger_pubonly$b[1], mod_egger_pubonly$ci.lb[1], mod_egger_pubonly$ci.ub[1])`, `r print_p(mod_egger_pubonly$pval[1])`.
+
+## Moderator Analyses
+Several moderators could have affected the observed effect sizes, including moderators relating to the sample (age, sample size, country), the experimental stimuli (scenario, agent type, prompt type), the experimental procedure (stimuli delivery, measure, setting), and researcher practices (laboratory affiliation, preregistration). 
+
+```{r fig-correl}
+#| fig-cap: "Associations among moderator variables, using either Spearman's correlation coefficient (numeric-numeric), ANOVA eta (numeric-categorical) or Cramér's V (categorical-categorical)."
+#| fig-width: 7
+#| fig-height: 5
+
+df_cor <- mixed_assoc(df_data_d |> 
+                        select(all_of(moderators))) |> 
+  mutate(across(c(x, y), \(f) {
+    factor(f, levels = moderators,
+           labels = c("Mean age (days)", "Log sample size", "Country", 
+                      "Scenario", "Agent type", "Prompt type",
+                      "Stim. delivery", "Measure", #"Setting",
+                      "Hamlin lab", "Geraci lab", "Preregistered"))
+  }))
+
+p_correl <- ggplot(data = df_cor |> filter(as.numeric(x) <= as.numeric(y)),
+                   aes(x = x, y = y, fill = assoc)) +
+  geom_tile() +
+  geom_text(aes(label = format(assoc, digits = 1))) +
+  scale_fill_continuous(palette = c("#FFFFFF", PLOT_COL)) +
+  scale_x_discrete(position = "top") +
+  labs(x = "", y = "",
+       fill = "Assoc") +
+  theme(axis.text.x = element_text(hjust = 0, angle = 30),
+        axis.ticks = element_blank(),
+        panel.border = element_blank())
+
+p_correl
+```
+
+We first examined the associations among the moderators. [@fig-correl] shows a correlogram among the moderators, using Spearman's correlation coefficients for associations between two numeric variables, the eta coefficient from an ANOVA for associations between a numeric and a categorical variable, and Cramér's V for associations between two categorical variables. The correlogram indicates moderate associations among some variable pairs. Nonetheless, because there were no large associations, we continued to include all moderators in subsequent analytic models, although we recommend caution when interpreting any individual moderator effects. 
+
+Additionally, there was insufficient information to fully determine the prompt type for nine effect sizes (arising from five papers). We inferred the most plausible prompt type on the basis of the methods text and knowledge about other comparable studies run by the same author group. 
+
+<!-- We treated these values as missing at random given the observed data, and created 20 imputations using multiple imputation with polytomous logistic regression. We used Rubin's rules (@Rubin1987) to pool coefficients and their uncertainties, taking the complete-data degrees of freedom to be infinite in alignment with the large-sample inference of the meta-regression. For categorical moderators, we used pooled $D_1$ tests (@Li1991) as a joint test for whether the moderator was significant. We also conducted sensitivity analyses, refitting each model with missing prompt types recoded as "Other", or after listwise deletion of the effects with missing prompt types.  -->
+
+To study the possible effect of various moderators on effect sizes, we constructed two models: a main effects model with all moderators entered as main effects, and an interaction model with additional selected interactions among moderators. These models were fitted as hierarchical meta-regressions with random intercepts of participant group nested within study.
+
+```{r models}
+fml_main <- reformulate(moderators)
+fml_inter <- reformulate(c(
+  moderators,
+  "measure:(stimuli_c + scenario)",
+  "scenario:(H_Lab_narrow + G_Lab)",
+  "age_sc:(scenario + measure + stimuli_c)"
+))
+fml_wide <- reformulate(str_replace(moderators, "H_Lab_narrow", "H_Lab_wide"))
+fml_mb <- reformulate(str_replace(moderators, "H_Lab_narrow", "H_Lab"))
+fml_noout <- reformulate(str_replace(moderators, "lni_sc", "lni_sc_noout"))
+
+mod_main <- fit_rma(mods = fml_main)
+mod_inter <- fit_rma(mods = fml_inter)
+mod_wide <- fit_rma(mods = fml_wide)
+mod_mb <- fit_rma(mods = fml_mb)
+mod_noout <- fit_rma(mods = fml_noout)
+
+df_plot <- df_data_d |>
+  mutate(
+    prop = d_to_prop(g),
+    prec = 1 / (g_var + ma_re$tau2),
+    weight = prec / sum(prec)
+  )
+```
 
 ## Age and Sample Size
-
-```{r age}
-df_data_d <- df_data_d |> 
-  mutate(prec = 1 / (d_var + ma_re$tau2),
-         weight = prec / sum(prec))
-
-mod_age <- rma.mv(yi = d,
-                  V = d_var,
-                  random = ~ 1 | study/ppt_grp,
-                  mods = ~ mean_age_days,
-                  data = df_data_d)
-pred_age <- predict(mod_age)
-
-df_age_pred <- df_data_d |> 
-  mutate(d_pred = pred_age$pred,
-         d_pred_ci.lb = pred_age$ci.lb,
-         d_pred_ci.ub = pred_age$ci.ub,
-         prop_pred = d_to_prop(d_pred),
-         prop_pred_ci.lb = d_to_prop(d_pred_ci.lb),
-         prop_pred_ci.ub = d_to_prop(d_pred_ci.ub))
-
-p_age <- df_data_d |> 
-  mutate(prop = d_to_prop(d)) |> 
-  ggplot(aes(x = mean_age_days, y = prop)) +
-  geom_point(aes(size = weight, shape = published), 
-             col = PLOT_COL, alpha = .7) +
-  geom_ribbon(data = df_age_pred,
-              aes(x = mean_age_days,
-                  y = prop_pred,
-                  ymin = prop_pred_ci.lb,
-                  ymax = prop_pred_ci.ub),
-              fill = PLOT_COL,
-              alpha = .2) +
-  geom_line(data = df_age_pred,
-            aes(x = mean_age_days,
-                y = prop_pred),
-            col = PLOT_COL,
-            linewidth = 1) +
-  scale_size_continuous(range = c(1, 3), 
-                        guide = "none") +
-  PUB_SCALE +
-  labs(x = "Mean age (days)",
-       y = "Proportion preferring prosocial agent")
-```
-
-```{r sample-size}
-mod_n <- rma.mv(yi = d,
-                V = d_var,
-                random = ~ 1 | study/ppt_grp,
-                mods = ~ log(ni),
-                data = df_data_d)
-pred_n <- predict(mod_n)
-
-df_data_d_noout <- df_data_d |>
-  mutate(log_n = log(ni),
-         log_n_z = scale(log_n)[,1]) |> 
-  filter(log_n_z >= -3,
-         log_n_z <= 3)
-
-mod_n_noout <- rma.mv(yi = d,
-                        V = d_var,
-                        random = ~ 1 | study/ppt_grp,
-                        mods = ~ log(ni),
-                        data = df_data_d_noout)
-
-df_n_pred <- df_data_d |> 
-  mutate(d_pred = pred_n$pred,
-         d_pred_ci.lb = pred_n$ci.lb,
-         d_pred_ci.ub = pred_n$ci.ub,
-         prop_pred = d_to_prop(d_pred),
-         prop_pred_ci.lb = d_to_prop(d_pred_ci.lb),
-         prop_pred_ci.ub = d_to_prop(d_pred_ci.ub))
-
-p_n <- df_data_d |> 
-  mutate(prop = d_to_prop(d)) |> 
-  ggplot(aes(x = log(ni), y = prop)) +
-  geom_point(aes(size = weight, shape = published), 
-             col = PLOT_COL, alpha = .7) +
-  geom_ribbon(data = df_n_pred,
-              aes(x = log(ni),
-                  y = prop_pred,
-                  ymin = prop_pred_ci.lb,
-                  ymax = prop_pred_ci.ub),
-              fill = PLOT_COL,
-              alpha = .2) +
-  geom_line(data = df_n_pred,
-            aes(x = log(ni),
-                y = prop_pred),
-            col = PLOT_COL,
-            linewidth = 1) +
-  annotate("text",
-           x = log(442) / 2,
-           y = 1.05,
-           label = "*") +
-  scale_size_continuous(range = c(1, 3), 
-                        guide = "none") +
-  PUB_SCALE +
-  labs(x = "Log sample size",
-       y = "Proportion preferring prosocial agent")
-```
-
-```{r scenario}
-mod_scenario <- rma.mv(yi = d,
-                       V = d_var,
-                       random = ~ 1 | study/ppt_grp,
-                       mods = ~ factor(scenario),
-                       data = df_data_d)
-
-p_scenario <- make_moderator_plot(df_data_d, mod_scenario)
-
-emm_scenario <- emmprep(mod_scenario) |> emmeans( ~ scenario) |> as_tibble()
-```
-
-```{r measure}
-mod_measure <- rma.mv(yi = d,
-                      V = d_var,
-                      random = ~ 1 | study/ppt_grp,
-                      mods = ~ factor(measure),
-                      data = df_data_d)
-
-p_measure <- make_moderator_plot(df_data_d, mod_measure)
-
-emm_measure <- emmprep(mod_measure) |> emmeans( ~ measure) |> as_tibble()
-```
 
 ```{r fig-moderators}
 #| fig-cap: "Effect sizes shown as a function of (A) infants' mean age in days, (B) log sample size, (C) scenario type, and (D) the measure used to assess preferences. For clarity of interpretation, effect sizes are presented in raw proportions. Lines and shaded areas represent the predicted meta-regression effects and their 95% confidence intervals. Diamonds represent estimated marginal means. *: $p$ < .05."
 #| fig-width: 7
 #| fig-height: 7
+
+p_age <- make_continuous_plot(df_plot, mod_main, "age_sc", "Mean age (days)")
+p_n <- make_continuous_plot(df_plot, mod_main, "lni_sc", "Log sample size")
+p_scenario <- make_moderator_plot(df_plot, mod_main, "scenario")
+p_measure <- make_moderator_plot(df_plot, mod_main, "measure")
+
+est_age <- mod_main |> 
+  tidy(conf.int = 95) |> 
+  filter(term == "age_sc") |> 
+  mutate(across(c("estimate", "conf.low", "conf.high"), 
+                \(x) x * 30 / sd(df_plot$mean_age_days)))
+est_n <- mod_noout |> 
+  tidy(conf.int = 95) |> 
+  filter(term == "lni_sc_noout") |> 
+  mutate(across(c("estimate", "conf.low", "conf.high"), 
+                \(x) x / sd(df_plot$log_ni)))
+
+emm_scenario <- get_emm(mod_main, "scenario")
+emm_measure <- get_emm(mod_main, "measure")
 
 p_moderators <- (p_age + p_n + p_scenario + p_measure) +
   # plot_layout(axis_titles = "collect") +
@@ -332,139 +340,31 @@ p_moderators <- (p_age + p_n + p_scenario + p_measure) +
 p_moderators
 ```
 
-We first investigated the possible effect of key sample-related moderators, including age and sample size. The mean ages of the samples ranged between `r df_data_d$mean_age_days |> min()` days and `r df_data_d$mean_age_days |> max()` days. As seen in [@fig-moderators]A, _age_ did not significantly moderate the effect size, `r print_qm(mod_age)`, with the estimated effect of one additional month of age being $\Delta d =$ `r print_est_ci(30*mod_age$b[2], 30*mod_age$ci.lb[2], 30*mod_age$ci.ub[2])`. 
+We first investigated the possible effect of key sample-related moderators, including age and sample size. The mean ages of the samples ranged between `r df_data_d$mean_age_days |> min()` days and `r df_data_d$mean_age_days |> max()` days. As seen in [@fig-moderators]A, _age_ did not significantly moderate the effect size, `r print_qm(mod_main, "age_sc")`, with the estimated effect of one additional month of age being $\Delta d =$ `r print_est_ci(30*est_age$estimate, 30*est_age$conf.low, 30*est_age$conf.high)`. 
 
-[@fig-moderators]B shows the effect of log _sample size_, which was a significant moderator of effect size, `r print_qm(mod_n)`. Studies with larger samples reported smaller effects. Examination of the distribution of sample size suggested that there were a few outliers; thus, we reran the analysis excluding effect sizes with log sample sizes beyond 3 standard deviations from the mean. Five effect sizes were excluded: one from @Lucca2025 ($n = 1$), and four from @Hamlin2025 ($n \in [214, 442]$). After their exclusion, log sample size remained a significant moderator of effect size, `r print_qm(mod_n_noout)`. The estimated effect of one additional participant was $\Delta d =$ `r print_est_ci(mod_n_noout$b[2], mod_n_noout$ci.lb[2], mod_n_noout$ci.ub[2])`.
+[@fig-moderators]B shows the effect of log _sample size_, which was a significant moderator of effect size, `r print_qm(mod_main, "lni_sc")`. Studies with larger samples reported smaller effects. Examination of the distribution of sample size suggested that there were a few outliers; thus, we reran the analysis excluding effect sizes with log sample sizes beyond 3 standard deviations from the mean. Five effect sizes were excluded: one from @Wu2025 ($n = 171$), and four from @Hamlin2025 ($n \in [214, 442]$). After their exclusion, log sample size was no longer a significant moderator of effect size, `r print_qm(mod_noout, "lni_sc_noout")`. The estimated effect of one additional participant after excluding outliers was $\Delta d =$ `r print_est_ci(est_n$estimate, est_n$conf.low, est_n$conf.high)`.
 
 ## Scenario Type and Measure Type
-We next investigated two key design-related moderators, namely scenario type and measure type. _Scenario type_ (four levels: fair/unfair, give/take, help/hinder, other) did not significantly moderate the effect size, `r print_qm(mod_scenario)`, as shown in [@fig-moderators]C. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_scenario |> filter(scenario == "fair_unfair"))` in fair/unfair scenarios, `r print_emm(emm_scenario |> filter(scenario == "give_take"))` in give/take scenarios, `r print_emm(emm_scenario |> filter(scenario == "help_hinder"))` in help/hinder scenarios, and `r print_emm(emm_scenario |> filter(scenario == "other"))` in other scenarios.
+We next investigated two key design-related moderators, namely scenario type and measure type. _Scenario type_ (four levels: fair/unfair, give/take, help/hinder, other) did significantly moderate the effect size, `r print_qm(mod_main, "scenario")`, although no pairwise contrasts survived Tukey's HSD correction, as shown in [@fig-moderators]C. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_scenario |> filter(scenario == "fair_unfair"))` in fair/unfair scenarios, `r print_emm(emm_scenario |> filter(scenario == "give_take"))` in give/take scenarios, `r print_emm(emm_scenario |> filter(scenario == "help_hinder"))` in help/hinder scenarios, and `r print_emm(emm_scenario |> filter(scenario == "other"))` in other scenarios.
 
-_Measure type_ (three levels: reach, help, visual) did not emerge as a significant moderator of effect size, `r print_qm(mod_measure)`, as shown in [@fig-moderators]D. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_measure |> filter(measure == "reach"))` in studies employing a manual reaching measure, `r print_emm(emm_measure |> filter(measure == "help"))` in studies using selective helping as the outcome, and `r print_emm(emm_measure |> filter(measure == "visual"))` in studies assessing visual preference.
+_Measure type_ (three levels: reach, help, visual) did not emerge as a significant moderator of effect size, `r print_qm(mod_main, "measure")`, as shown in [@fig-moderators]D. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_measure |> filter(measure == "reach"))` in studies employing a manual reaching measure, `r print_emm(emm_measure |> filter(measure == "help"))` in studies using selective helping as the outcome, and `r print_emm(emm_measure |> filter(measure == "visual"))` in studies assessing visual preference.
 
-## Laboratory Bias and Study Location
+## Procedure Design Features
 
-```{r lab}
-mod_lab <- rma.mv(yi = d,
-                     V = d_var,
-                     random = ~ 1 | study/ppt_grp,
-                     mods = ~ H_Lab_narrow,
-                     data = df_data_d)
-
-p_lab <- make_moderator_plot(df_data_d, mod_lab) +
-  labs(x = "Laboratory affiliation") +
-  scale_x_discrete(
-    limits = c("yes", "no"),
-    labels = c("Hamlin", "Non-Hamlin")
-  )
-
-emm_lab <- emmprep(mod_lab) |> emmeans( ~ H_Lab_narrow) |> as_tibble()
-```
-
-```{r lab_wide}
-df_data_lab_wide <- df_data_d |> 
-  mutate(H_Lab_wide = ifelse(study %in% c("Woo_Spelke_2023a", "Woo_Spelke_2023b"), 
-                             "yes", H_Lab_narrow))
-mod_lab_wide <- rma.mv(yi = d,
-                     V = d_var,
-                     random = ~ 1 | study/ppt_grp,
-                     mods = ~ H_Lab_wide,
-                     data = df_data_lab_wide)
-
-emm_lab_wide <- emmprep(mod_lab_wide) |> emmeans( ~ H_Lab_wide) |> as_tibble()
-```
-
-```{r country}
-mod_country <- rma.mv(yi = d,
-                        V = d_var,
-                        random = ~ 1 | study/ppt_grp,
-                        mods = ~ nationality,
-                        data = df_data_d |> filter(!is.na(nationality)))
-
-p_country <- make_moderator_plot(
-  df_data_d |> filter(!is.na(nationality)),
-  mod_country) +
-  labs(x = "Country") +
-  scale_x_discrete(
-    limits = c("North_America", "Europe", "Asia", "Oceania"),
-    labels = \(x) x |> str_replace_all("_", "\n") |> str_to_title()
-  )
-
-emm_country <- emmprep(mod_country) |> emmeans( ~ nationality) |> as_tibble()
-```
-
-```{r delivery}
-mod_delivery <- rma.mv(yi = d,
-                           V = d_var,
-                           random = ~ 1 | study/ppt_grp,
-                           mods = ~ stimuli,
-                           data = df_data_d)
-
-p_delivery <- make_moderator_plot(df_data_d, mod_delivery) +
-  labs(x = "Stimuli delivery mode")
-
-emm_delivery <- emmprep(mod_delivery) |> emmeans( ~ stimuli) |> as_tibble()
-```
-
-```{r format}
-mod_format <- rma.mv(yi = d,
-                     V = d_var,
-                     random = ~ 1 | study/ppt_grp,
-                     mods = ~ stimuli_2,
-                     data = df_data_d)
-
-p_format <- make_moderator_plot(df_data_d, mod_format) +
-  labs(x = "Stimuli presentation format") +
-  scale_x_discrete(
-    limits = c("real", "cartoon"),
-    labels = str_to_sentence
-  )
-
-emm_format <- emmprep(mod_format) |> emmeans( ~ stimuli_2) |> as_tibble()
-```
-
-```{r agent}
-mod_object <- rma.mv(yi = d,
-                     V = d_var,
-                     random = ~ 1 | study/ppt_grp,
-                     mods = ~ choice_object,
-                     data = df_data_d)
-
-p_object <- make_moderator_plot(df_data_d, mod_object) +
-  labs(x = "Agent type") +
-  scale_x_discrete(
-    limits = c("shapes", "puppets", "experimenters"),
-    labels = str_to_sentence
-  )
-
-emm_object <- emmprep(mod_object) |> emmeans( ~ choice_object) |> as_tibble()
-```
-
-```{r prompt}
-mod_question <- rma.mv(yi = d,
-                       V = d_var,
-                       random = ~ 1 | study/ppt_grp,
-                       mods = ~ question,
-                       data = df_data_d |> 
-                         filter(!is.na(question)))
-
-p_question <- make_moderator_plot(
-  df_data_d |> filter(!is.na(question)),
-  mod_question) +
-  scale_x_discrete(
-    limits = c("Who do you like", "Other", "No"),
-    labels = c("Who do\nyou like?", "Other", "No question")
-  ) +
-  labs(x = "Prompt type")
-
-emm_question <- emmprep(mod_question) |> emmeans( ~ question) |> as_tibble()
-```
-
-```{r fig-additional}
-#| fig-cap: "Effect sizes shown as a function of (A) laboratory affiliation, (B) study location, (C) stimuli delivery mode, (D) presentation format, (E) agent type, and (F) prompt type. For clarity of interpretation, effect sizes are presented in raw proportions. Diamonds represent estimated marginal means. *: $p$ < .05."
+```{r fig-procedure}
+#| fig-cap: "Effect sizes shown as a function of (A) stimuli format, (B) agent type, and (C) prompt type. For clarity of interpretation, effect sizes are presented in raw proportions. Diamonds represent estimated marginal means. *: $p$ < .05."
 #| fig-width: 7
-#| fig-height: 10.5
+#| fig-height: 7.2
 
-p_additional <- (p_lab + p_country + p_delivery + p_format + p_object + p_question) +
+p_stimuli <- make_moderator_plot(df_plot, mod_main, "stimuli_c", "Stimuli format")
+p_object <- make_moderator_plot(df_plot, mod_main, "choice_object", "Agent type")
+p_question <- make_moderator_plot(df_plot, mod_main, "question", "Prompt type")
+
+emm_stimuli <- get_emm(mod_main, "stimuli_c")
+emm_object <- get_emm(mod_main, "choice_object")
+emm_question <- get_emm(mod_main, "question")
+
+p_procedure <- (p_stimuli + p_object + p_question) +
   # plot_layout(axis_titles = "collect") +
   plot_layout(ncol = 2, 
               guides = "collect") +
@@ -473,27 +373,106 @@ p_additional <- (p_lab + p_country + p_delivery + p_format + p_object + p_questi
                      breaks = seq(0, 1, 0.25)) &
   theme(legend.position = "bottom")
 
-p_additional
+p_procedure
 ```
 
-We next investigated two potential moderators related to study provenance, namely laboratory affiliation and study location.
+We next investigated three potential moderators related to procedure design. First, we collapsed the scenario delivery mode and presentation format predictors into a single _stimuli format_ moderator (three levels: live shows of real events, movies of real events, cartoon movies). This moderator was not significant, `r print_qm(mod_main, "stimuli_c")`, as shown in [@fig-procedure]A. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_stimuli |> filter(stimuli_c == "live_show-real"))` in live shows of real events, `r print_emm(emm_stimuli |> filter(stimuli_c == "movies-real"))` in movies of real events, and `r print_emm(emm_stimuli |> filter(stimuli_c == "movies-cartoon"))` in cartoon movies.
 
-We next investigated _laboratory affiliation_ (Hamlin's group versus independent labs) as a potential moderator. Because K. Hamlin pioneered this line of research and contributed a large share of the available data, and -- importantly -- given several failed replication attempts [e.g., @Salvadori2015; @Schlingloff2020], including a recent multi-lab effort [@Lucca2025], we examined whether effect sizes from Hamlin's lab differed systematically from those reported by other groups. In this analysis, the lab-level effects reported in @Lucca2025 were considered independent from Hamlin's laboratory, except for the data directly provided by Hamlin's group. While the multi-lab replication was partly coordinated by Hamlin and collaborators, each participating site independently contributed its own sample, personnel, and recruitment procedures, thereby warranting treatment as distinct sources of data. No significant moderation was detected, `r print_qm(mod_lab)`, as shown in [@fig-additional]A. The estimated proportion of children preferring the prosocial agent in Hamlin's group was `r print_emm(emm_lab |> filter(H_Lab_narrow == "yes"))`, whereas in independent labs it was `r print_emm(emm_lab |> filter(H_Lab_narrow == "no"))`.
+_Agent type_ (three levels: experimenters, puppets, foam shapes) did not significantly moderate the effect size, `r print_qm(mod_main, "choice_object")`, as shown in [@fig-procedure]B. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_object |> filter(choice_object == "experimenters"))` in studies in which infants and toddlers expressed a preference between two experimenters, `r print_emm(emm_object |> filter(choice_object == "puppets"))` in studies using puppets as agents, and `r print_emm(emm_object |> filter(choice_object == "shapes"))` in studies using shapes.
 
-As an exploratory extension, we also considered an alternative grouping that included effects reported by B. Woo [specifically, @WooSpelke2023a; @WooSpelke2023b] as part of Hamlin's group, as Woo is a former student of K. Hamlin. This approach is grounded in the concept of "research allegiance" [@Munder2013], since former students may follow similar experimental protocols and methodological guidance in their own research [see for example @Davis2021]. In this analysis, the moderation effect remained insignificant, `r print_qm(mod_lab_wide)`. The estimated proportion of children preferring the prosocial agent in this broader definition of Hamlin's group was `r print_emm(emm_lab_wide |> filter(H_Lab_wide == "yes"))`, whereas in independent labs it was `r print_emm(emm_lab_wide |> filter(H_Lab_wide == "no"))`.
+Additionally, _prompt type_ (three levels: question "Who do you like?", no prompt, other instructions) did not significantly moderate the effect size, `r print_qm(mod_main, "question")`, as shown in [@fig-procedure]C. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_question |> filter(question == "Who do you like"))` in studies that explicitly asked the question "Who do you like?", `r print_emm(emm_question |> filter(question == "No"))` in studies employing no prompt, and `r print_emm(emm_question |> filter(question == "Other"))` in studies using alternative question wordings or instructions.
 
-We further examined whether _study location_ (four levels: North America, Europe, Asia, Oceania) moderated the effect size. For this analysis, we dropped one effect size that was collected in South America. Location was not a significant moderator, `r print_qm(mod_country)`, as shown in [@fig-additional]B. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_country |> filter(nationality == "North_America"))` in North America, `r print_emm(emm_country |> filter(nationality == "Europe"))` in Europe, `r print_emm(emm_country |> filter(nationality == "Asia"))` in Asia, and `r print_emm(emm_country |> filter(nationality == "Oceania"))` in Oceania.
+## Laboratory Affiliation
 
-## Delivery Mode and Presentation Format
+```{r fig-origin}
+#| fig-cap: "Effect sizes shown as a function of (A, B) laboratory affiliation, (C) study location, and (D) whether the study was preregistered. For clarity of interpretation, effect sizes are presented in raw proportions. Diamonds represent estimated marginal means. *: $p$ < .05."
+#| fig-width: 7
+#| fig-height: 7
 
-We next investigated two potential moderators related to stimuli presentation. We investigated the effect of _scenario delivery mode_ (live shows vs. movies), revealing a significant moderation effect, `r print_qm(mod_delivery)`, as shown in [@fig-additional]C. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_delivery |> filter(stimuli == "live_show"))` in live shows and `r print_emm(emm_delivery |> filter(stimuli == "movies"))` in movies.
+p_h_lab <- make_moderator_plot(df_plot, mod_main, "H_Lab_narrow", "Hamlin lab")
+p_g_lab <- make_moderator_plot(df_plot, mod_main, "G_Lab", "Geraci lab")
+p_country <- make_moderator_plot(df_plot, mod_main, "nationality", "Country")
+p_prereg <- make_moderator_plot(df_plot, mod_main, "preregistered", "Preregistration")
 
-Finally, we examined _scenario presentation format_ (real events vs. cartoons). This moderator was not significant, `r print_qm(mod_format)`, as shown in [@fig-additional]D. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_format |> filter(stimuli_2 == "real"))` in real events and `r print_emm(emm_format |> filter(stimuli_2 == "cartoon"))` in cartoons.
+emm_hlab <- get_emm(mod_main, "H_Lab_narrow")
+emm_hlab_wide <- get_emm(mod_wide, "H_Lab_wide")
+emm_glab <- get_emm(mod_main, "G_Lab")
+emm_country <- get_emm(mod_main, "nationality")
+emm_prereg <- get_emm(mod_main, "preregistered")
 
-## Agent Type and Prompt Type
+p_origin <- (p_h_lab + p_g_lab + p_country + p_prereg) +
+  # plot_layout(axis_titles = "collect") +
+  plot_layout(ncol = 2, 
+              guides = "collect") +
+  plot_annotation(tag_levels = 'A') &
+  scale_y_continuous(limits = c(0, 1.1),
+                     breaks = seq(0, 1, 0.25)) &
+  theme(legend.position = "bottom")
 
-Finally, we investigated two potential moderators related to procedure design. _Agent type_ (three levels: experimenters, puppets, foam shapes) did not significantly moderate the effect size, `r print_qm(mod_object)`, as shown in [@fig-additional]E. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_object |> filter(choice_object == "experimenters"))` in studies in which infants and toddlers expressed a preference between two experimenters, `r print_emm(emm_object |> filter(choice_object == "puppets"))` in studies using puppets as agents, and `r print_emm(emm_object |> filter(choice_object == "shapes"))` in studies using shapes.
+p_origin
+```
 
-Last, _prompt type_ (three levels: question "Who do you like?", no prompt, other instructions) did not significantly moderate the effect size, `r print_qm(mod_question)`, as shown in [@fig-additional]F. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_question |> filter(question == "Who do you like"))` in studies that explicitly asked the question "Who do you like?", `r print_emm(emm_question |> filter(question == "No"))` in studies employing no prompt, and `r print_emm(emm_question |> filter(question == "Other"))` in studies using alternative question wordings or instructions.
+We next investigated _laboratory affiliation_ (Hamlin's group, Geraci's group, independent labs) as a potential moderator. Because K. Hamlin pioneered this line of research and contributed a large share of the available data, and -- importantly -- given several failed replication attempts [e.g., @Salvadori2015; @Schlingloff2020], including a recent multi-lab effort [@Lucca2025], we examined whether effect sizes from Hamlin's lab differed systematically from those reported by other groups. In this analysis, the lab-level effects reported in @Lucca2025 were considered independent from Hamlin's laboratory, except for the data directly provided by Hamlin's group. While the multi-lab replication was partly coordinated by Hamlin and collaborators, each participating site independently contributed its own sample, personnel, and recruitment procedures, thereby warranting treatment as distinct sources of data. No significant moderation was detected, `r print_qm(mod_main, "H_Lab_narrow")`, as shown in [@fig-origin]A. The estimated proportion of children preferring the prosocial agent in Hamlin's group was `r print_emm(emm_hlab |> filter(H_Lab_narrow == "yes"))`, whereas in independent labs it was `r print_emm(emm_hlab |> filter(H_Lab_narrow == "no"))`.
 
+As an exploratory extension, we also considered an alternative grouping that included effects reported by B. Woo [specifically, @WooSpelke2023a; @WooSpelke2023b] as part of Hamlin's group, as Woo is a former student of K. Hamlin. This approach is grounded in the concept of "research allegiance" [@Munder2013], since former students may follow similar experimental protocols and methodological guidance in their own research [see for example @Davis2021]. In this analysis, the moderation effect remained insignificant, `r print_qm(mod_wide, "H_Lab_wide")`. The estimated proportion of children preferring the prosocial agent in this broader definition of Hamlin's group was `r print_emm(emm_hlab_wide |> filter(H_Lab_wide == "yes"))`, whereas in independent labs it was `r print_emm(emm_hlab_wide |> filter(H_Lab_wide == "no"))`.
+
+We also exploratorily analysed the potential role of A. Geraci, who has also contributed significantly to this field. As she has one joint paper with K. Hamlin [@Geraci2025], we did not collapse laboratory of origin into a three-level factor, but treated affiliation with Geraci as a separate moderator. This moderator was significant, `r print_qm(mod_main, "G_Lab")`, as shown in [@fig-origin]B. The estimated proportion of children preferring the prosocial agent in Geraci's group was `r print_emm(emm_glab |> filter(G_Lab == "yes"))`, whereas in independent labs it was `r print_emm(emm_glab |> filter(G_Lab == "no"))`.
+
+## Study Location and Preregistration
+
+We further examined whether _study location_ (five levels: North America, South America, Europe, Asia, Oceania) moderated the effect size. For this analysis, as only one effect size that was collected in South America, we do not interpret the coefficient for South America. Location was not a significant moderator, `r print_qm(mod_main, "nationality")`, as shown in [@fig-origin]C. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_country |> filter(nationality == "North_America"))` in North America, `r print_emm(emm_country |> filter(nationality == "Europe"))` in Europe, `r print_emm(emm_country |> filter(nationality == "Asia"))` in Asia, and `r print_emm(emm_country |> filter(nationality == "Oceania"))` in Oceania.
+
+Finally, we exploratorily considered the potential role of _preregistration_ (preregistered versus not preregistered) on effect size. Preregistration was not a significant moderator, `r print_qm(mod_main, "preregistered")`, as shown in [@fig-origin]D. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_prereg |> filter(preregistered == "yes"))` for preregistered studies and `r print_emm(emm_prereg |> filter(preregistered == "no"))` for studies not preregistered. We note that preregistration status is also confounded with age, so we recommend caution in interpreting these values directly.
+
+## Interaction Effects
+```{r}
+inter_tests <- map(c(
+  "measure:stimuli_c", "measure:scenario",
+  "scenario:H_Lab_narrow", "scenario:G_Lab",
+  "age_sc:scenario", "age_sc:measure", "age_sc:stimuli_c"
+), \(i) omnibus_test(mod_inter, i))
+
+test_hlab_scen <- inter_tests[[4]]
+```
+
+```{r}
+# Equal weights average over empty cells of the other interactions, so
+# emmeans marks those marginal means nonEst. Weight by observed cells.
+trm <- delete.response(terms(fml_inter))
+dat <- df_data_d[mod_inter$not.na, , drop = FALSE]
+X <- model.matrix(trm, dat)
+full_names <- colnames(X)
+
+b <- coef(mod_inter)
+V <- vcov(mod_inter)
+names(b)[names(b) == "intrcpt"] <- "(Intercept)"
+rownames(V)[rownames(V) == "intrcpt"] <- "(Intercept)"
+colnames(V)[colnames(V) == "intrcpt"] <- "(Intercept)"
+
+b_full <- setNames(rep(NA_real_, length(full_names)), full_names)
+b_full[names(b)] <- b
+V_full <- matrix(
+  NA_real_, length(full_names), length(full_names),
+  dimnames = list(full_names, full_names)
+)
+V_full[names(b), names(b)] <- V
+
+rg <- qdrg(
+  formula = fml_inter,
+  data = dat,
+  coef = b_full,
+  vcov = V_full,
+  df = Inf,
+  qr = qr(X),
+  rg.limit = 13000
+)
+
+emm <- emmeans(rg, ~ scenario | H_Lab_narrow, weights = "flat")
+scen_lab_pairs <- pairs(emm, adjust = "tukey")
+scen_lab_pairs
+```
+
+It is possible that the moderators had effects that were non-independent; thus, we considered three possible sets of interaction effects in an extended model. First, the response measure used may have depended on the stimuli format and the scenario (e.g., preferential looking is more common with movies than with live shows). Second, the scenarios used may differ depending on the laboratory affiliation, as some laboratories may prefer research questions related to particular scenarios. Third, the age of the children may have affected the choices of scenarios, measures, and stimuli formats (e.g., looking time measures tend to be used with younger infants who are less able to reliably reach). 
+
+Only one interaction effect was significant: the interaction between scenario and Hamlin's lab (`r print_qm(test_hlab_scen)`; all other $p > .06$). However, none of the scenario contrasts within laboratory affiliation remained significant after Tukey's HSD correction (all $p > .08$).
 
