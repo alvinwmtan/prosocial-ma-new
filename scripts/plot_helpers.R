@@ -210,14 +210,16 @@ make_moderator_plot <- function(df, ma, term, xlab = NULL) {
 make_continuous_plot <- function(df, ma, term, xlab = NULL) {
   nd <- seq(min(df[[term]]), max(df[[term]]), length.out = 50)
   mod_names <- setdiff(colnames(ma$X), c("intrcpt", "(Intercept)"))
+  # Sum contrasts make 0 the balanced mean. Hold other moderators at their
+  # observed column means so the curve matches the proportional-weight EMMs.
+  xbar <- colMeans(ma$X[, mod_names, drop = FALSE])
   newmods <- matrix(
-    0,
+    xbar,
     nrow = length(nd),
     ncol = length(mod_names),
+    byrow = TRUE,
     dimnames = list(NULL, mod_names)
   )
-  # newmods[, "mean_age_days"] <- mean(df$mean_age_days)
-  # newmods[, "log_ni"] <- mean(df$log_ni)
   newmods[, term] <- nd
   nd_pred <- tibble(xval = nd) |>
     cbind(predict(ma, newmods = newmods, level = 95) |>
@@ -286,131 +288,4 @@ make_continuous_plot <- function(df, ma, term, xlab = NULL) {
                label = "*")
   }
   p
-}
-
-
-
-
-
-
-
-
-
-
-axis_lab <- function(x, var) {
-  lab <- level_lab(x, var)
-  if (var == "scenario") {
-    str_replace(lab, "/", "/\n")
-  } else if (var == "stimuli_c") {
-    str_replace(lab, ", ", ",\n")
-  } else {
-    lab
-  }
-}
-
-plot_cont <- function(var, preds, xlab, star = FALSE) {
-  p <- df_plot |>
-    ggplot(aes(x = .data[[var]])) +
-    geom_point(
-      aes(y = prop, size = weight, shape = published),
-      col = PLOT_COL, alpha = .7
-    ) +
-    geom_ribbon(
-      data = preds,
-      aes(y = prop_pred, ymin = prop_pred_ci.lb, ymax = prop_pred_ci.ub),
-      fill = PLOT_COL, alpha = .2
-    ) +
-    geom_line(data = preds, aes(y = prop_pred), col = PLOT_COL, linewidth = 1) +
-    scale_size_continuous(range = c(1, 3), guide = "none") +
-    PUB_SCALE +
-    labs(x = xlab, y = "Proportion preferring prosocial agent")
-  if (star) {
-    p <- p + annotate(
-      "text",
-      x = mean(range(df_plot[[var]], na.rm = TRUE)),
-      y = 1.05,
-      label = "*"
-    )
-  }
-  p
-}
-
-plot_cat <- function(var, preds, pairs, xlab) {
-  p <- df_plot |>
-    filter(!is.na(.data[[var]])) |>
-    ggplot(aes(x = .data[[var]])) +
-    geom_quasirandom(
-      aes(y = prop, size = weight, shape = published),
-      col = PLOT_COL, alpha = .7, width = .3
-    ) +
-    geom_boxplot(aes(y = prop), width = .2, alpha = .8) +
-    geom_point(
-      data = preds,
-      aes(y = prop_pred),
-      col = PLOT_COL, shape = 18, size = 4
-    ) +
-    scale_x_discrete(labels = \(x) axis_lab(x, var)) +
-    scale_size_continuous(range = c(1, 3), guide = "none") +
-    PUB_SCALE +
-    labs(x = xlab, y = "Proportion preferring prosocial agent")
-  sig <- pairs |>
-    filter(p.signif != "ns") |>
-    select(group1, group2, p.signif)
-  if (nrow(sig) > 0) {
-    p <- p + stat_pvalue_manual(
-      sig,
-      y.position = 1.05,
-      step.increase = 0.05,
-      tip.length = 0
-    )
-  }
-  p
-}
-
-plot_int_cat <- function(xvar, facet, preds, xlab) {
-  df_plot |>
-    ggplot(aes(x = .data[[xvar]])) +
-    geom_quasirandom(
-      aes(y = prop, size = weight, shape = published),
-      col = PLOT_COL, alpha = .7, width = .3
-    ) +
-    geom_boxplot(aes(y = prop), width = .2, alpha = .8) +
-    geom_point(
-      data = preds,
-      aes(y = prop_pred),
-      col = PLOT_COL, shape = 18, size = 4
-    ) +
-    facet_wrap(reformulate(facet), labeller = as_labeller(\(x) level_lab(x, facet))) +
-    scale_x_discrete(labels = \(x) axis_lab(x, xvar)) +
-    scale_size_continuous(range = c(1, 3), guide = "none") +
-    PUB_SCALE +
-    labs(x = xlab, y = "Proportion preferring prosocial agent")
-}
-
-plot_int_age <- function(facet, preds) {
-  preds <- preds |> arrange(.data[[facet]], mean_age_days)
-  df_plot |>
-    ggplot(aes(x = mean_age_days)) +
-    geom_point(
-      aes(y = prop, size = weight, shape = published),
-      col = PLOT_COL, alpha = .7
-    ) +
-    geom_ribbon(
-      data = preds,
-      aes(y = prop_pred, ymin = prop_pred_ci.lb, ymax = prop_pred_ci.ub),
-      fill = PLOT_COL, alpha = .2
-    ) +
-    geom_line(data = preds, aes(y = prop_pred), col = PLOT_COL, linewidth = 1) +
-    facet_wrap(reformulate(facet), labeller = as_labeller(\(x) level_lab(x, facet))) +
-    scale_size_continuous(range = c(1, 3), guide = "none") +
-    PUB_SCALE +
-    labs(x = "Mean age (days)", y = "Proportion preferring prosocial agent")
-}
-
-finish <- function(..., ncol = 1) {
-  wrap_plots(...) +
-    plot_layout(ncol = ncol, guides = "collect") +
-    plot_annotation(tag_levels = "A") &
-    scale_y_continuous(limits = c(0, 1.1), breaks = seq(0, 1, 0.25)) &
-    theme(legend.position = "bottom")
 }

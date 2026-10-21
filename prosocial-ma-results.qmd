@@ -234,7 +234,7 @@ p_funnel <- df_data_d |>
 p_funnel
 ```
 
-An initial analysis examined _publication status_ (published vs. unpublished) as a potential moderator of effect size. @fig-funnel displays a funnel plot of the effect sizes. No significant moderation was observed, `r print_qm(mod_pub)`. We assessed evidence of publication bias (@Ferguson2012) using the $k =$ `r df_data_d |> filter(published == "yes") |> nrow()` published effect sizes. We used a generalisation of Egger's test [@Egger1997], regressing the effect sizes from their standard errors; publication bias was indicated if the intercept was significantly different than zero. We found evidence of publication bias, with the intercept estimated as `r print_est_ci(mod_egger_pubonly$b[1], mod_egger_pubonly$ci.lb[1], mod_egger_pubonly$ci.ub[1])`, `r print_p(mod_egger_pubonly$pval[1])`.
+An initial analysis examined _publication status_ (published vs. unpublished) as a potential moderator of effect size. @fig-funnel displays a funnel plot of the effect sizes. No significant moderation was observed, `r print_qm(mod_pub)`. We assessed evidence of publication bias (@Ferguson2012) using the $k =$ `r df_data_d |> filter(published == "yes") |> nrow()` published effect sizes. We used a generalisation of Egger's test [@Egger1997], regressing the effect sizes from their standard errors; publication bias was indicated if the intercept was significantly different than zero. We found evidence of publication bias, with the intercept estimated as `r print_est_ci(mod_egger_pubonly$b[1], mod_egger_pubonly$ci.lb[1], mod_egger_pubonly$ci.ub[1])`, `r print_p(mod_egger_pubonly$pval[1])`. As Egger's test may be invalid for odds ratio outcomes (due to the correlation between log odds ratios and their standard errors), we also ran a generalization of Peters' test [@Peters2006], regressing the effect sizes on the inverse sample sizes; publication bias was indicated if the slope was significantly different from zero.In this case, we did not find evidence of publication bias, with the slope estimated as `r print_est_ci(mod_peters_pubonly$b[2], mod_peters_pubonly$ci.lb[2], mod_peters_pubonly$ci.ub[2])`, `r print_p(mod_peters_pubonly$pval[2])`.
 
 ## Moderator Analyses
 Several moderators could have affected the observed effect sizes, including moderators relating to the sample (age, sample size, country), the experimental stimuli (scenario, agent type, prompt type), the experimental procedure (stimuli delivery, measure, setting), and researcher practices (laboratory affiliation, preregistration). 
@@ -364,10 +364,11 @@ emm_stimuli <- get_emm(mod_main, "stimuli_c")
 emm_object <- get_emm(mod_main, "choice_object")
 emm_question <- get_emm(mod_main, "question")
 
-p_procedure <- (p_stimuli + p_object + p_question) +
+p_procedure <- ((p_stimuli | p_object) / 
+  ((plot_spacer() | p_question | plot_spacer()) + 
+     plot_layout(widths = c(0.5, 1, 0.5)))) +
   # plot_layout(axis_titles = "collect") +
-  plot_layout(ncol = 2, 
-              guides = "collect") +
+  plot_layout(guides = "collect") +
   plot_annotation(tag_levels = 'A') &
   scale_y_continuous(limits = c(0, 1.1),
                      breaks = seq(0, 1, 0.25)) &
@@ -422,7 +423,7 @@ We also exploratorily analysed the potential role of A. Geraci, who has also con
 
 We further examined whether _study location_ (five levels: North America, South America, Europe, Asia, Oceania) moderated the effect size. For this analysis, as only one effect size that was collected in South America, we do not interpret the coefficient for South America. Location was not a significant moderator, `r print_qm(mod_main, "nationality")`, as shown in [@fig-origin]C. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_country |> filter(nationality == "North_America"))` in North America, `r print_emm(emm_country |> filter(nationality == "Europe"))` in Europe, `r print_emm(emm_country |> filter(nationality == "Asia"))` in Asia, and `r print_emm(emm_country |> filter(nationality == "Oceania"))` in Oceania.
 
-Finally, we exploratorily considered the potential role of _preregistration_ (preregistered versus not preregistered) on effect size. Preregistration was not a significant moderator, `r print_qm(mod_main, "preregistered")`, as shown in [@fig-origin]D. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_prereg |> filter(preregistered == "yes"))` for preregistered studies and `r print_emm(emm_prereg |> filter(preregistered == "no"))` for studies not preregistered. We note that preregistration status is also confounded with age, so we recommend caution in interpreting these values directly.
+Finally, we exploratorily considered the potential role of _preregistration_ (preregistered versus not preregistered) on effect size. Preregistration was not a significant moderator, `r print_qm(mod_main, "preregistered")`, as shown in [@fig-origin]D. The estimated proportion of children preferring the prosocial agent was `r print_emm(emm_prereg |> filter(preregistered == "yes"))` for preregistered studies and `r print_emm(emm_prereg |> filter(preregistered == "no"))` for studies not preregistered. We note that preregistration status is also confounded with year, so we recommend caution in interpreting these values directly.
 
 ## Interaction Effects
 ```{r}
@@ -432,12 +433,12 @@ inter_tests <- map(c(
   "age_sc:scenario", "age_sc:measure", "age_sc:stimuli_c"
 ), \(i) omnibus_test(mod_inter, i))
 
-test_hlab_scen <- inter_tests[[4]]
+test_glab_scen <- inter_tests[[4]]
 ```
 
 ```{r}
-# Equal weights average over empty cells of the other interactions, so
-# emmeans marks those marginal means nonEst. Weight by observed cells.
+# Proportional weights follow the observed margins of the other moderators.
+# A contrast that still puts weight on an empty cell stays nonEst.
 trm <- delete.response(terms(fml_inter))
 dat <- df_data_d[mod_inter$not.na, , drop = FALSE]
 X <- model.matrix(trm, dat)
@@ -467,12 +468,38 @@ rg <- qdrg(
   rg.limit = 13000
 )
 
-emm <- emmeans(rg, ~ scenario | H_Lab_narrow, weights = "flat")
-scen_lab_pairs <- pairs(emm, adjust = "tukey")
-scen_lab_pairs
+# emm <- emmeans(rg, ~ scenario | G_Lab, weights = "proportional")
+# scen_lab_pairs <- pairs(emm, adjust = "tukey")
+# scen_lab_pairs
+
+nuis <- c(
+  "nationality", "choice_object", "question", "stimuli_c",
+  "measure", "H_Lab_narrow", "preregistered"
+)
+grid <- rg@grid |>
+  mutate(est = estimability::is.estble(rg@linfct, rg@nbasis))
+obs <- dat |> distinct(scenario, G_Lab)
+
+support <- grid |>
+  inner_join(obs, by = c("scenario", "G_Lab")) |>
+  summarise(ok = all(est), .by = all_of(c(nuis, "G_Lab"))) |>
+  filter(ok) |>
+  summarise(n_lab = n(), .by = all_of(nuis)) |>
+  filter(n_lab == n_distinct(dat$G_Lab))
+
+levs <- emmeans(rg, ~ scenario | G_Lab, weights = "show.levels")
+w <- levs |>
+  left_join(count(grid, across(all_of(nuis)), wt = .wgt., name = "n"), by = nuis) |>
+  left_join(support |> mutate(keep = TRUE), by = nuis) |>
+  mutate(n = if_else(keep %in% TRUE, n, 0))
+
+emm <- emmeans(rg, ~ scenario | G_Lab, weights = w$n)
+scen_lab_pairs <- pairs(emm, adjust = "tukey", reverse = TRUE) |> 
+  as_tibble() |> 
+  mutate(ci.lb = estimate - qnorm(0.975) * SE,
+         ci.ub = estimate + qnorm(0.975) * SE)
 ```
 
 It is possible that the moderators had effects that were non-independent; thus, we considered three possible sets of interaction effects in an extended model. First, the response measure used may have depended on the stimuli format and the scenario (e.g., preferential looking is more common with movies than with live shows). Second, the scenarios used may differ depending on the laboratory affiliation, as some laboratories may prefer research questions related to particular scenarios. Third, the age of the children may have affected the choices of scenarios, measures, and stimuli formats (e.g., looking time measures tend to be used with younger infants who are less able to reliably reach). 
 
-Only one interaction effect was significant: the interaction between scenario and Hamlin's lab (`r print_qm(test_hlab_scen)`; all other $p > .06$). However, none of the scenario contrasts within laboratory affiliation remained significant after Tukey's HSD correction (all $p > .08$).
-
+Only one interaction effect was significant: the interaction between scenario and Hamlin's lab (`r print_qm(test_glab_scen)`; all other $p > .06$). We estimated pairwise contrasts within laboratory affiliation using proportional weights for non-zero cells; after Tukey's HSD correction, only one simple contrast remained significant. For Hamlin's lab, giver/taker scenarios elicited larger effects than helper/hinderer scenarios ($\Delta g = $ `r print_est_ci(h_lab_hh_gt$estimate, h_lab_hh_gt$ci.lb, h_lab_hh_gt$ci.ub)`).

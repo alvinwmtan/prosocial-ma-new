@@ -35,7 +35,7 @@ d_to_prop <- function(d) {
   return(prop)
 }
 
-print_num <- function(x, dec = 3) {
+print_num <- function(x, dec = 2) {
   round(x, dec) |> format(nsmall = dec)
 }
 
@@ -86,7 +86,7 @@ print_qm <- function(ma, term = NULL) {
 get_emm <- function(ma, term, tibble = TRUE) {
   emm <- ma |>
     emmprep(rg.limit = 13000) |>
-    emmeans(as.formula(paste0("~ ", term)))
+    emmeans(as.formula(paste0("~ ", term)), weights = "proportional")
   if (tibble) as_tibble(emm) else emm
 }
 
